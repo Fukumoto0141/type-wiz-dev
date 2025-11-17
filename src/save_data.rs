@@ -16,30 +16,38 @@ pub struct PlayerData {
     pub level: u32,
     pub current_xp: u32,
     pub total_typed_chars: u32,
+    pub total_misses: u32,
 }
 
 impl Default for PlayerData {
+    /// プレイヤーデータの初期値
     fn default() -> Self {
         Self {
             level: 1,
             current_xp: 0,
             total_typed_chars: 0,
+            total_misses: 0,
         }
     }
 }
 
 impl PlayerData {
     /// 次のレベルまでに必要な経験値を計算する
-    /// 計算式: レベル * 100 (例: Lv1->100, Lv2->200...)
+    // ▼▼▼ (Task 1) レベルカーブの変更 ▼▼▼
+    // 計算式: (レベル ^ 1.5) * 100
     pub fn required_xp_for_next_level(&self) -> u32 {
-        self.level * 100
+        // f64 で計算し、最後に u32 に丸める
+        ((self.level as f64).powf(1.1) * 100.0).round() as u32
     }
+    // ▲▲▲ (Task 1) 変更ここまで ▲▲▲
 
     /// 経験値を加算し、レベルアップ判定を行う
-    /// 戻り値: レベルアップした場合は true
-    pub fn add_xp(&mut self, amount: u32) -> bool {
-        self.current_xp += amount;
-        self.total_typed_chars += amount;
+    // ▼▼▼ (Task 3) 獲得XPの仕様変更 ▼▼▼
+    // `amount` (獲得XP) と `chars_typed` (タイプ文字数) を別々に受け取る
+    pub fn add_xp(&mut self, xp_to_add: u32, chars_typed: u32) -> bool {
+        self.current_xp += xp_to_add;
+        self.total_typed_chars += chars_typed; // 累計タイプ数も加算
+        // ▲▲▲ (Task 3) 変更ここまで ▲▲▲
 
         let mut leveled_up = false;
         // 必要経験値を超えている間、レベルを上げ続ける
@@ -53,15 +61,12 @@ impl PlayerData {
 
     /// データをファイルに保存する (JSON)
     pub fn save(&self) {
-        // `serde_json::to_string_pretty` で整形されたJSON文字列を作成
         if let Ok(json) = serde_json::to_string_pretty(self) {
-            // ファイル書き込み (エラーハンドリングは簡略化のため無視していますが、実運用ではログ出力などが望ましい)
             let _ = fs::write(SAVE_FILE_NAME, json);
         }
     }
 
     /// ファイルからデータを読み込む
-    /// ファイルがない、または壊れている場合はデフォルト値を返す
     pub fn load() -> Self {
         if !Path::new(SAVE_FILE_NAME).exists() {
             return Self::default();
@@ -73,8 +78,6 @@ impl PlayerData {
                 return data;
             }
         }
-
-        // 読み込み失敗時はデフォルト
         Self::default()
     }
 }

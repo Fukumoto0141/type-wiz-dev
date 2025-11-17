@@ -86,19 +86,17 @@ struct AppState<'a> {
     start_time: Option<Instant>, // タイマー開始時刻
     
     // 直前のリザルト表示用
-    // ▼▼▼ 変更: WPM -> CPS ▼▼▼
-    last_cps: Option<f64>, // last_wpm からリネーム
-    // ▲▲▲ 変更ここまで ▲▲▲
+    last_cps: Option<f64>, // (CPS表示用)
     last_time: Option<f64>,
     
-    // ▼▼▼ (ミス・スコア) マージ ▼▼▼
     /// 現在のお題でのミス回数
     current_misses: u32,
     /// 直前のお題のミス回数
     last_misses: Option<u32>,
     /// 直前のお題のスコア
     last_score: Option<f64>,
-    // ▲▲▲ (ミス・スコア) マージここまで ▲▲▲
+    /// 直前に獲得した経験値
+    last_xp_gained: Option<u32>,
 
     /// ローマ字辞書
     roman_map: HashMap<&'static str, Vec<&'static str>>,
@@ -117,16 +115,13 @@ impl<'a> AppState<'a> {
             current_char_index: 0,
             is_error: false,
             start_time: None,
-            // ▼▼▼ 変更: WPM -> CPS ▼▼▼
-            last_cps: None, // last_wpm からリネーム
-            // ▲▲▲ 変更ここまで ▲▲▲
+            last_cps: None,
             last_time: None,
             
-            // ▼▼▼ (ミス・スコア) マージ ▼▼▼
             current_misses: 0,
             last_misses: None,
             last_score: None,
-            // ▲▲▲ (ミス・スコア) マージここまで ▲▲▲
+            last_xp_gained: None,
 
             roman_map: create_roman_mapping(), // `roman_mapping` モジュールから辞書作成
             player_data: PlayerData::load(),   // 起動時にロード
@@ -145,9 +140,7 @@ impl<'a> AppState<'a> {
         self.current_char_index = 0;
         self.is_error = false;
         
-        // ▼▼▼ (ミス・スコア) マージ ▼▼▼
         self.current_misses = 0; // お題が変わるたびにミスをリセット
-        // ▲▲▲ (ミス・スコア) マージここまで ▲▲▲
     }
     
     /// ひらがな文字列を `Vec<CharState>` に分解（パース）する
@@ -196,12 +189,10 @@ impl<'a> AppState<'a> {
                     ));
                     idx += 1;
                 } else {
-                    // 辞書にない文字 (漢字など) はスキップ
-                    idx += 1;
+                    idx += 1; // 辞書にない文字 (漢字など) はスキップ
                 }
             }
         }
-
         result
     }
 
@@ -318,24 +309,28 @@ impl<'a> AppState<'a> {
                 100.0
             };
 
-            // ▼▼▼ 変更: スコア計算を CPS ベースに変更 ▼▼▼
             let mut cps = 0.0;
             if duration_sec > 0.0 {
                 cps = total_chars as f64 / duration_sec; // CPS = 総文字数 / 秒
             }
 
-            // スコア計算: CPS * (正確率 / 100)^3
-            // (WPM の計算は不要になったため削除)
-            let score = cps * (accuracy / 100.0).powi(3);
+            let score = (cps * 100.0) * (accuracy / 100.0).powi(3) * (total_chars as f64);
 
-            self.last_cps = Some(cps); // last_wpm -> last_cps
+            let base_xp = total_chars as f64;
+            let skill_bonus = 1.0 + (cps / 10.0); // CPSが高いほどボーナス
+            let accuracy_mod = (accuracy / 100.0).powi(3); // ミスが少ないほどボーナス
+            let final_xp = (base_xp * skill_bonus * accuracy_mod).round() as u32;
+
+
+            self.last_cps = Some(cps);
             self.last_time = Some(duration_sec);
             self.last_misses = Some(misses);
             self.last_score = Some(score);
+            self.last_xp_gained = Some(final_xp);
 
-            self.player_data.add_xp(total_chars as u32);
+            self.player_data.add_xp(final_xp, total_chars as u32);
+            self.player_data.total_misses += misses;
             self.player_data.save();
-            // ▲▲▲ 変更ここまで ▲▲▲
         }
         
         // 次のお題へ
@@ -368,7 +363,7 @@ fn restore_terminal(terminal: &mut Terminal<impl Backend>) -> Result<()> {
     stdout().execute(Show)?; // カーソルを再表示
     stdout().execute(LeaveAlternateScreen)?; // 代替スクリーンを終了
     disable_raw_mode()?;
-    terminal.show_cursor()?;
+    // terminal.show_cursor()?; // ratatui v0.26 で非推奨 -> crossterm::cursor::Show で対応
     Ok(())
 }
 
@@ -443,19 +438,17 @@ fn ui(f: &mut Frame, app_state: &AppState) {
 
 
     // 1. リザルト表示
-    // ▼▼▼ 変更: WPM -> CPS ▼▼▼
-    let cps_time_text = match (app_state.last_cps, app_state.last_time) { // last_wpm -> last_cps
-        (Some(cps), Some(time)) => format!("CPS: {:.2} / Time: {:.2}s", cps, time), // WPM -> CPS
+    let cps_time_text = match (app_state.last_cps, app_state.last_time) {
+        (Some(cps), Some(time)) => format!("CPS: {:.2} / Time: {:.2}s", cps, time),
         _ => String::new(),
     };
-    // ▲▲▲ 変更ここまで ▲▲▲
     let score_miss_text = match (app_state.last_score, app_state.last_misses) {
         (Some(score), Some(misses)) => format!("Score: {:.0} / Miss: {}", score, misses),
         _ => String::new(),
     };
 
     let result_paragraph = Paragraph::new(vec![
-        Line::from(cps_time_text).style(Style::default().fg(Color::Yellow)), // wpm_time_text -> cps_time_text
+        Line::from(cps_time_text).style(Style::default().fg(Color::Yellow)),
         Line::from(score_miss_text).style(Style::default().fg(Color::Yellow)),
     ]);
     
@@ -523,5 +516,7 @@ fn ui(f: &mut Frame, app_state: &AppState) {
     f.render_widget(
         Paragraph::new(Line::from(spans))
             .centered(),
-        chunks[5]); 
+        chunks[5]);
+    
+    // (カーソルは Hide で非表示にしているため、set_cursor_position は不要)
 }
