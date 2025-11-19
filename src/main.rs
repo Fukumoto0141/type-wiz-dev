@@ -6,6 +6,21 @@ use std::collections::HashMap;
 use std::io::{Result, stdout};
 use std::time::{Duration, Instant};
 
+use chrono::Utc;
+use crossterm::{
+    ExecutableCommand,
+    event::{self, Event, KeyCode},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    cursor::Hide,
+};
+use dialoguer::{theme::ColorfulTheme, Select};
+use ratatui::{
+    prelude::*,
+    style::{Color, Style, Stylize},
+    text::{Line, Span},
+    widgets::{Block, Borders, Paragraph, Gauge},
+};
+
 // `src/questions.rs` をモジュールとして読み込む
 mod questions;
 use questions::{QUESTIONS_LIST, Question};
@@ -14,25 +29,21 @@ use questions::{QUESTIONS_LIST, Question};
 mod roman_mapping;
 use roman_mapping::create_roman_mapping;
 
-// セーブデータモジュール
+// `src/save_data.rs` をモジュールとして読み込む
 mod save_data;
 use save_data::{PlayerData, TypeRecord};
 
-use chrono::Utc;
+// --------------------------------------------------
+// アプリケーションモード
+// --------------------------------------------------
 
-use crossterm::{
-    ExecutableCommand,
-    event::{self, Event, KeyCode},
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
-    cursor::{Hide, Show},
-};
-
-use ratatui::{
-    prelude::*,
-    style::{Color, Style, Stylize}, // Stylize を Gauge のために追加
-    text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Gauge}, // Gauge を追加
-};
+#[derive(Debug, Clone, PartialEq)]
+enum AppMode {
+    Menu,
+    Typing,
+    Log,
+    Exit,
+}
 
 // --------------------------------------------------
 // データ構造
@@ -76,6 +87,9 @@ impl CharState {
 
 /// アプリ全体の状態を管理する
 struct AppState<'a> {
+    mode: AppMode,
+    _menu_index: usize,         // メニューの選択インデックス
+    
     questions: &'a [Question],     // お題リストへの参照
     current_question_index: usize, // 今何問目か
     
@@ -111,6 +125,9 @@ impl<'a> AppState<'a> {
     /// AppState の初期化
     fn new() -> Self {
         let mut state = Self {
+            mode: AppMode::Menu,
+            _menu_index: 0,
+            
             questions: QUESTIONS_LIST,
             current_question_index: 0,
             char_states: Vec::new(),
@@ -125,24 +142,20 @@ impl<'a> AppState<'a> {
             last_score: None,
             last_xp_gained: None,
 
-            roman_map: create_roman_mapping(), // `roman_mapping` モジュールから辞書作成
-            player_data: PlayerData::load(),   // 起動時にロード
+            roman_map: create_roman_mapping(),
+            player_data: PlayerData::load(),
         };
-        state.load_current_question(); // 最初のお題を読み込む
+        state.load_current_question();
         state
     }
     
     /// 現在のお題を読み込み、`char_states` に分解する
     fn load_current_question(&mut self) {
         let question = &self.questions[self.current_question_index];
-
-        // `question.hiragana` (タイピング用) を `parse_hiragana` に渡す
         self.char_states = self.parse_hiragana(question.hiragana);
-
         self.current_char_index = 0;
         self.is_error = false;
-        
-        self.current_misses = 0; // お題が変わるたびにミスをリセット
+        self.current_misses = 0;
     }
     
     /// ひらがな文字列を `Vec<CharState>` に分解（パース）する
@@ -151,7 +164,6 @@ impl<'a> AppState<'a> {
         let chars: Vec<char> = text.chars().collect();
         let mut idx = 0;
         
-        // 最長一致でパースする
         while idx < chars.len() {
             let mut found = false;
 
@@ -191,7 +203,7 @@ impl<'a> AppState<'a> {
                     ));
                     idx += 1;
                 } else {
-                    idx += 1; // 辞書にない文字 (漢字など) はスキップ
+                    idx += 1;
                 }
             }
         }
@@ -209,37 +221,33 @@ impl<'a> AppState<'a> {
         if self.start_time.is_none() {
             self.start_time = Some(Instant::now());
         }
-        
+         // すべて打ち終わっている
         if self.current_char_index >= self.char_states.len() {
-            return; // すべて打ち終わっている
+            return;
         }
         
         let current_state = &mut self.char_states[self.current_char_index];
         let expected_char = current_state.remaining().chars().next();
         
-        // 1. 現在のパターンで試す
         if Some(c) == expected_char {
             current_state.typed_count += 1;
             self.is_error = false;
-            
+            // 次の CharState へ
             if current_state.is_complete() {
-                self.current_char_index += 1; // 次の CharState へ
+                self.current_char_index += 1;
             }
         } else {
-            // 2. 別のパターンで試す
             let mut found = false;
             let typed_so_far = &current_state.current_pattern()[..current_state.typed_count];
             
             for (i, pattern) in current_state.patterns.iter().enumerate() {
                 if i == current_state.current_pattern_idx {
-                    continue; // 今のパターンはもう試した
+                    continue;
                 }
                 
-                // "shi" が "s" (typed_so_far) で始まるか？
                 if pattern.starts_with(typed_so_far) {
-                    // "shi" の `typed_count` 番目('h')は、入力('h')と一致するか？
                     if Some(c) == pattern.chars().nth(current_state.typed_count) {
-                        current_state.current_pattern_idx = i; // パターンを切り替え
+                        current_state.current_pattern_idx = i;
                         current_state.typed_count += 1;
                         self.is_error = false;
                         found = true;
@@ -252,17 +260,15 @@ impl<'a> AppState<'a> {
                 }
             }
 
-            // どのパターンにも合わなかった
             if !found {
                 self.is_error = true;
-                self.current_misses += 1; // ミス回数をカウント
+                self.current_misses += 1;
             }
         }
     }
     
     /// Backspace の処理
     fn handle_backspace(&mut self) {
-        // 既に完了しているが、まだ `next_question` が呼ばれていない場合
         if self.current_char_index >= self.char_states.len() && self.current_char_index > 0 {
             self.current_char_index -= 1;
         }
@@ -270,19 +276,16 @@ impl<'a> AppState<'a> {
         if self.current_char_index < self.char_states.len() {
             let current = &mut self.char_states[self.current_char_index];
             if current.typed_count > 0 {
-                // 現在の CharState の入力を1文字戻す
                 current.typed_count -= 1;
             } else if self.current_char_index > 0 {
-                // 前の CharState に戻る
                 self.current_char_index -= 1;
-                // 前の CharState の入力を最後から1文字削る
                 let prev_len = self.char_states[self.current_char_index]
                     .current_pattern()
                     .len();
                 self.char_states[self.current_char_index].typed_count = prev_len.saturating_sub(1);
             }
         }
-        self.is_error = false; // Backspaceでエラーはリセット
+        self.is_error = false;
     }
     
     /// お題をすべて打ち終わったか
@@ -292,11 +295,9 @@ impl<'a> AppState<'a> {
     
     /// 次のお題に進む
     fn next_question(&mut self) {
-        // リザルトを計算して `last_...` に保存
         if let Some(start) = self.start_time {
             let duration = start.elapsed();
             let duration_sec = duration.as_secs_f64();
-            // 実際にタイプしたローマ字の総数を計算
             let total_chars: usize = self
                 .char_states
                 .iter()
@@ -313,14 +314,14 @@ impl<'a> AppState<'a> {
 
             let mut cps = 0.0;
             if duration_sec > 0.0 {
-                cps = total_chars as f64 / duration_sec; // CPS = 総文字数 / 秒
+                cps = total_chars as f64 / duration_sec;
             }
 
             let score = (cps * 100.0) * (accuracy / 100.0).powi(3) * (total_chars as f64);
 
             let base_xp = total_chars as f64;
-            let skill_bonus = 1.0 + (cps / 10.0); // CPSが高いほどボーナス
-            let accuracy_mod = (accuracy / 100.0).powi(3); // ミスが少ないほどボーナス
+            let skill_bonus = 1.0 + (cps / 10.0);
+            let accuracy_mod = (accuracy / 100.0).powi(3);
             let final_xp = (base_xp * skill_bonus * accuracy_mod).round() as u32;
 
             self.last_cps = Some(cps);
@@ -329,7 +330,6 @@ impl<'a> AppState<'a> {
             self.last_score = Some(score);
             self.last_xp_gained = Some(final_xp);
 
-            // タイピング記録を履歴に追加
             let question = self.get_current_question();
             let record = TypeRecord {
                 timestamp: Utc::now(),
@@ -344,63 +344,145 @@ impl<'a> AppState<'a> {
             };
             self.player_data.history.push(record);
 
-            // XPとミスカウントを更新
             self.player_data.add_xp(final_xp, total_chars as u32);
             self.player_data.total_misses += misses;
-            
-            // セーブ
             self.player_data.save();
         }
         
-        // 次のお題へ
         self.current_question_index = (self.current_question_index + 1) % self.questions.len();
-        self.load_current_question(); // ここで `char_states` がリセットされる
+        self.load_current_question();
         self.start_time = None;
     }
 }
 
 // --------------------------------------------------
-// メイン関数 (TUIセットアップと実行ループ)
+// MARK:メイン関数
 // --------------------------------------------------
 
 fn main() -> Result<()> {
-    let mut terminal = setup_terminal()?;
-    run_app(&mut terminal)?;
-    restore_terminal(&mut terminal)?;
+    let mut app_state = AppState::new();
+    
+    loop {
+        match app_state.mode {
+            AppMode::Menu => {
+                if show_menu(&mut app_state)? {
+                    // // スクリーンクリア
+                    // print!("\x1b[2J\x1b[H");
+                    // stdout().flush()?;
+                }
+            }
+            AppMode::Typing => {
+                run_typing_mode(&mut app_state)?;
+            }
+            AppMode::Log => {
+                show_log(&mut app_state)?;
+            }
+            AppMode::Exit => {
+                break;
+            }
+        }
+    }
+    
     Ok(())
 }
 
-fn setup_terminal() -> Result<Terminal<impl Backend>> {
+// --------------------------------------------------
+// MARK:メニュー表示（通常スクリーン）
+// --------------------------------------------------
+
+fn show_menu(app_state: &mut AppState) -> Result<bool> {
+    
+    // let term = Term::stdout();
+    // term.clear_screen()?;
+
+    // タイトルロゴ
+    println!();
+
+    println!("\x1b[38;5;202m    ████████\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╗   \x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██████\x1b[38;5;166m╗ \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
+
+    println!("    \x1b[38;5;166m╚══\x1b[38;5;202m██\x1b[38;5;166m╔══╝╚\x1b[38;5;202m██\x1b[38;5;166m╗ \x1b[38;5;202m██\x1b[38;5;166m╔╝\x1b[38;5;202m██\x1b[38;5;166m╔══\x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╔════╝\x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║    ╚\x1b[38;5;202m████\x1b[38;5;166m╔╝ \x1b[38;5;202m██████\x1b[38;5;166m╔╝\x1b[38;5;202m█████\x1b[38;5;166m╗  \x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║     ╚\x1b[38;5;202m██\x1b[38;5;166m╔╝  \x1b[38;5;202m██\x1b[38;5;166m╔═══╝ \x1b[38;5;202m██\x1b[38;5;166m╔══╝  \x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║      \x1b[38;5;202m██\x1b[38;5;166m║   \x1b[38;5;202m██\x1b[38;5;166m║     \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
+
+    println!("\x1b[38;5;166m       ╚═╝      ╚═╝   ╚═╝     ╚══════╝ \x1b[38;5;202mWiZ.\x1b[0m");
+
+    println!();
+
+
+    
+    let items = vec![
+        "Start Type",
+        "Mission (Coming Soon...)",
+        "Game Log",
+        "Leaderboard (Coming Soon...)",
+        "Settings (Coming Soon...)",
+        "Exit",
+    ];
+    
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .items(&items)
+        .default(app_state._menu_index | 0)
+        .interact_opt()?;
+
+    match selection {
+        Some(0) => {
+            // Start Type
+            app_state.mode = AppMode::Typing;
+            app_state.load_current_question();
+            Ok(true)
+        }
+        Some(2) => {
+            // Game Log
+            app_state.mode = AppMode::Log;
+            Ok(true)
+        }
+        Some(5) | None => {
+            // Exit or Esc
+            app_state.mode = AppMode::Exit;
+            Ok(false)
+        }
+        _ => {
+            // Coming Soon...
+            // show_menu(app_state)?;
+            app_state.mode = AppMode::Menu;
+            Ok(false)
+        }
+    }
+}
+
+// --------------------------------------------------
+// MARK:タイピングモード（代替スクリーン）
+// --------------------------------------------------
+
+fn run_typing_mode(app_state: &mut AppState) -> Result<()> {
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?; // 代替スクリーンを使用
     stdout().execute(Hide)?; // カーソルを非表示
     let backend = CrosstermBackend::new(stdout());
-    Ok(Terminal::new(backend)?)
-}
-
-fn restore_terminal(_terminal: &mut Terminal<impl Backend>) -> Result<()> {
-    stdout().execute(Show)?; // カーソルを再表示
-    stdout().execute(LeaveAlternateScreen)?; // 代替スクリーンを終了
-    disable_raw_mode()?;
-    // terminal.show_cursor()?; // ratatui v0.26 で非推奨 -> crossterm::cursor::Show で対応
-    Ok(())
-}
-
-fn run_app(terminal: &mut Terminal<impl Backend>) -> Result<()> {
-    let mut app_state = AppState::new();
+    let mut terminal = Terminal::new(backend)?;
 
     loop {
-        terminal.draw(|f| ui(f, &app_state))?;
+        terminal.draw(|f| ui_typing(f, app_state))?;
 
         if event::poll(Duration::from_millis(50))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == event::KeyEventKind::Press {
                     match key.code {
-                        KeyCode::Esc => break,
+                        KeyCode::Esc => {
+                            // stdout().execute(Show)?;
+                            stdout().execute(LeaveAlternateScreen)?;
+                            disable_raw_mode()?;
+                            app_state.mode = AppMode::Exit;
+                            app_state.load_current_question();
+                            return Ok(());
+                        }
                         KeyCode::Backspace => app_state.handle_backspace(),
                         KeyCode::Char(c) => {
                             app_state.handle_char_input(c);
-                            // 完了したら自動で次へ
                             if app_state.is_question_complete() {
                                 app_state.next_question();
                             }
@@ -411,17 +493,65 @@ fn run_app(terminal: &mut Terminal<impl Backend>) -> Result<()> {
             }
         }
     }
-    
-    Ok(())
 }
 
 // --------------------------------------------------
-// UI描画
+// MARK:ログ表示（通常スクリーン）
 // --------------------------------------------------
 
-fn ui(f: &mut Frame, app_state: &AppState) {
+fn show_log(app_state: &mut AppState) -> Result<()> {
+    println!();
+    println!("\x1b[36m═══════════════════════════════════════════════════════════════════════════\x1b[0m");
+    println!("\x1b[36m  Game Log\x1b[0m");
+    println!("\x1b[36m═══════════════════════════════════════════════════════════════════════════\x1b[0m");
+    println!();
+    
+    if app_state.player_data.history.is_empty() {
+        println!("\x1b[90m  No records yet. Start typing to create history!\x1b[0m");
+    } else {
+        let recent: Vec<_> = app_state
+            .player_data
+            .history
+            .iter()
+            .rev()
+            .take(15)
+            .collect();
+        
+        for record in recent {
+            println!(
+                "  {} | {} | CPS: {:.2} | Miss: {} | Score: {:.0}",
+                record.timestamp.format("%m/%d %H:%M"),
+                record.question_japanese,
+                record.cps,
+                record.misses,
+                record.score
+            );
+        }
+    }
+    
+    println!();
+    println!("\x1b[90m  Press any key to return to menu...\x1b[0m");
+    
+    enable_raw_mode()?;
+    loop {
+        if event::poll(Duration::from_millis(50))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == event::KeyEventKind::Press {
+                    disable_raw_mode()?;
+                    app_state.mode = AppMode::Menu;
+                    return Ok(());
+                }
+            }
+        }
+    }
+}
+
+// --------------------------------------------------
+// UI描画 - タイピング
+// --------------------------------------------------
+
+fn ui_typing(f: &mut Frame, app_state: &AppState) {
     let size = f.area();
-    // 枠線を描画
     let block = Block::default().borders(Borders::ALL).title(" TYPE WiZ ");
     let inner_area = block.inner(size);
     f.render_widget(block, size);
@@ -429,16 +559,16 @@ fn ui(f: &mut Frame, app_state: &AppState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // [0] ステータスバー (Lv, XP)
-            Constraint::Length(2), // [1] リザルト (2行)
-            Constraint::Length(1), // [2] 日本語
-            Constraint::Length(1), // [3] 空白
-            Constraint::Length(1), // [4] ひらがな
-            Constraint::Min(1),    // [5] タイピングエリア
+            Constraint::Length(1),
+            Constraint::Length(2),
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(1),
         ])
         .split(inner_area);
 
-    // 0. ステータスバー (レベルとXPゲージ)
+    // ステータスバー
     let pd = &app_state.player_data;
     let req_xp = pd.required_xp_for_next_level();
     let ratio = if req_xp > 0 {
@@ -447,7 +577,6 @@ fn ui(f: &mut Frame, app_state: &AppState) {
         0.0
     };
 
-    // 直前の獲得XP
     let xp_text = match app_state.last_xp_gained {
         Some(xp) => format!(" +{}XP", xp),
         None => String::new(),
@@ -461,7 +590,7 @@ fn ui(f: &mut Frame, app_state: &AppState) {
         .label(label);
     f.render_widget(gauge, chunks[0]);
 
-    // 1. リザルト表示
+    // リザルト
     let cps_time_text = match (app_state.last_cps, app_state.last_time) {
         (Some(cps), Some(time)) => format!("CPS: {:.2} / Time: {:.2}s", cps, time),
         _ => String::new(),
@@ -475,10 +604,9 @@ fn ui(f: &mut Frame, app_state: &AppState) {
         Line::from(cps_time_text).style(Style::default().fg(Color::Yellow)),
         Line::from(score_miss_text).style(Style::default().fg(Color::Yellow)),
     ]);
-    
     f.render_widget(result_paragraph, chunks[1]);
 
-    // 2. 日本語（漢字混じり）表示
+    // 日本語
     f.render_widget(
         Paragraph::new(app_state.get_current_question().japanese)
             .style(Style::default().fg(Color::White).bold())
@@ -486,7 +614,7 @@ fn ui(f: &mut Frame, app_state: &AppState) {
         chunks[2],
     );
     
-    // 3. ひらがな表示
+    // ひらがな
     f.render_widget(
         Paragraph::new(app_state.get_current_question().hiragana)
             .style(Style::default().fg(Color::Gray))
@@ -494,19 +622,14 @@ fn ui(f: &mut Frame, app_state: &AppState) {
         chunks[4],
     );
 
-    // 4. ローマ字タイピングエリア表示
+    // ローマ字
     let mut spans = Vec::new();
-    
-    // 全ての CharState をループして描画
     for (i, cs) in app_state.char_states.iter().enumerate() {
-        // "si" や "shi" など、現在アクティブなパターン
         let pattern = cs.current_pattern(); 
         
         if i < app_state.current_char_index {
-            // 完了済みの CharState (緑)
             spans.push(Span::styled(pattern, Style::default().fg(Color::Green)));
         } else if i == app_state.current_char_index {
-            // 現在の CharState (入力中)
             let typed = &pattern[..cs.typed_count];
             let remaining = &pattern[cs.typed_count..];
             
@@ -515,7 +638,6 @@ fn ui(f: &mut Frame, app_state: &AppState) {
             }
             
             if let Some(next) = remaining.chars().next() {
-                // カーソル (白または赤)
                 let style = if app_state.is_error {
                     Style::default().fg(Color::White).bg(Color::Red)
                 } else {
@@ -523,7 +645,6 @@ fn ui(f: &mut Frame, app_state: &AppState) {
                 };
                 spans.push(Span::styled(next.to_string(), style));
                 
-                // カーソル以降の残り (灰色)
                 if remaining.len() > 1 {
                     spans.push(Span::styled(
                         &remaining[1..],
@@ -532,15 +653,12 @@ fn ui(f: &mut Frame, app_state: &AppState) {
                 }
             }
         } else {
-            // まだ手をつけていない CharState (灰色)
             spans.push(Span::styled(pattern, Style::default().fg(Color::DarkGray)));
         }
     }
 
     f.render_widget(
-        Paragraph::new(Line::from(spans))
-            .centered(),
-        chunks[5]);
-    
-    // (カーソルは Hide で非表示にしているため、set_cursor_position は不要)
+        Paragraph::new(Line::from(spans)).centered(),
+        chunks[5]
+    );
 }
