@@ -13,9 +13,9 @@ path-guid = "A4959E94-C134-4223-B63C-895435313089"
 license = false
 eula = false
 locale = "ja-JP"
-banner = "banner.png"
-dialog = "dialog.png"
-product-icon = "product_icon.ico"
+banner = "./banner.png"
+dialog = "./dialog.png"
+product-icon = "./product_icon.ico"
 
 
 [dependencies]
