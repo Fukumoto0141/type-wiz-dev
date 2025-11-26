@@ -168,7 +168,7 @@
           Add/Remove Programs control panel requires commenting out or
           removing the following `Icon` and `Property` tags.
         -->
-        <Icon Id='ProductICO' SourceFile='./product_icon.ico'/>
+        <Icon Id='ProductICO' SourceFile='wix/product_icon.png'/>
         <Property Id='ARPPRODUCTICON' Value='ProductICO' />
         
         <Property Id='ARPHELPLINK' Value='https://github.com/Fukumoto0141/type-wiz-dev.git'/>
@@ -205,7 +205,7 @@
 
           The banner BMP dimensions are 493 x 58 pixels.
         -->
-        <WixVariable Id='WixUIBannerBmp' Value='./banner.png'/>
+        <WixVariable Id='WixUIBannerBmp' Value='wix/banner.png'/>
         
         <!--
           Disabling the dialog image in the installer requires commenting out or
@@ -213,7 +213,7 @@
 
           The dialog BMP dimensions are 493 x 312 pixels.
         -->
-        <WixVariable Id='WixUIDialogBmp' Value='./dialog.png'/>
+        <WixVariable Id='WixUIDialogBmp' Value='wix/dialog.png'/>
         
     </Product>
 
