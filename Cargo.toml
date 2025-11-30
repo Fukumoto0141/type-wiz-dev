@@ -7,16 +7,6 @@ authors = ["Fukumoto0141"]
 description = "TYPE WiZ."
 repository = "https://github.com/Fukumoto0141/type-wiz-dev.git"
 
-[package.metadata.wix]
-upgrade-guid = "20E59377-F54A-4EB3-A6B5-8AE829DFC184"
-path-guid = "A4959E94-C134-4223-B63C-895435313089"
-license = false
-eula = false
-banner = "wix/banner.png"
-dialog = "wix/dialog.png"
-product-icon = "wix/product_icon.png"
-
-
 [dependencies]
 bincode = "2.0.1"
 chrono = { version = "0.4.42", features = ["serde"] }
@@ -30,8 +20,3 @@ ratatui = "0.29.0"
 self_update = "0.42.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
-
-# The profile that 'dist' will build with
-[profile.dist]
-inherits = "release"
-lto = "thin"

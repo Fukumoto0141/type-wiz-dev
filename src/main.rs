@@ -391,7 +391,7 @@ impl<'a> AppState<'a> {
 
 fn main() -> Result<()> {
     let mut app_state = AppState::new();
-    let _ = update();
+
     let cli = Cli::parse();
     match &cli.command {
         Some(Commands::Start) =>  app_state.mode = AppMode::Typing,
@@ -399,6 +399,8 @@ fn main() -> Result<()> {
         // デフォルトの挙動
         None => app_state.mode = AppMode::Menu,
     }
+
+    let _ = update();
     
     loop {
         match app_state.mode {
