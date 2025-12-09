@@ -1,0 +1,46 @@
+name: Build and Release Installer
+
+on:
+  push:
+    tags:
+      - 'v*'   # タグを打ったらリリース
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Rust app
+        run: cargo build --release
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        run: iscc installer.iss
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: installer
+          path: output/MyRustAppInstaller.exe
+
+  release:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: installer
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: MyRustAppInstaller.exe

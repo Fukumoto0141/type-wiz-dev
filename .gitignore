@@ -1,3 +1,5 @@
 /target
 /archives
 save_data.*
+/docs
+*.exe

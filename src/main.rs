@@ -449,7 +449,7 @@ fn show_menu(app_state: &mut AppState) -> Result<bool> {
 
     println!();
 
-        // タイトルロゴ
+    // タイトルロゴ
     println!();
 
     println!("\x1b[38;5;202m    ████████\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╗   \x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██████\x1b[38;5;166m╗ \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
