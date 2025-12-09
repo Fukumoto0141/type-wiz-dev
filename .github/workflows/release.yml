@@ -19,17 +19,17 @@ jobs:
       - name: Build Rust app
         run: cargo build --release
 
-      - name: Install Inno Setup
-        run: choco install innosetup -y
-
       - name: Build installer
-        run: iscc installer.iss
+        uses: Minionguyjpro/Inno-Setup-Action@v1.0.0
+        with:
+          path: 'installer_setup.iss'
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: installer
-          path: output/MyRustAppInstaller.exe
+          name: typewiz_installer
+          path: "typewiz_*_installer.exe"
+
 
   release:
     needs: build
@@ -38,9 +38,9 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: installer
+          name: typewiz_installer
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: MyRustAppInstaller.exe
+          files: typewiz_*_installer.exe
