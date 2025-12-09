@@ -30,12 +30,12 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ChangesAssociations=yes
 DisableProgramGroupPage=yes
-LicenseFile=C:\Users\fukuk\dev\type-wiz\LICENSE
+LicenseFile=./LICENSE
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
-OutputDir=C:\Users\fukuk\dev\type-wiz
+OutputDir=build
 OutputBaseFilename={#MyAppName}_{#MyAppVersion}_installer
-SetupIconFile=C:\Users\fukuk\dev\type-wiz\archives\product_icon.ico
+SetupIconFile=./archives\product_icon.ico
 SolidCompression=yes
 WizardStyle=modern windows11
 
@@ -48,7 +48,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "addtopath"; Description: "Add installation directory to PATH"; GroupDescription: "Additional Options"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\fukuk\dev\type-wiz\target\release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "./target\release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
