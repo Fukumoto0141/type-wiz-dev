@@ -36,6 +36,10 @@ use roman_mapping::create_roman_mapping;
 mod save_data;
 use save_data::{PlayerData, TypeRecord};
 
+// `src/update.rs` をモジュールとして読み込む
+mod update;
+use update::update;
+
 // --------------------------------------------------
 // アプリケーションモード
 // --------------------------------------------------
@@ -395,6 +399,8 @@ fn main() -> Result<()> {
         // デフォルトの挙動
         None => app_state.mode = AppMode::Menu,
     }
+
+    let _ = update();
     
     loop {
         match app_state.mode {
@@ -425,6 +431,23 @@ fn main() -> Result<()> {
 fn show_menu(app_state: &mut AppState) -> Result<bool> {
     
     let term = Term::stdout();
+
+    // タイトルロゴ
+    println!();
+
+    println!("\x1b[38;5;202m    ████████\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╗   \x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██████\x1b[38;5;166m╗ \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
+
+    println!("    \x1b[38;5;166m╚══\x1b[38;5;202m██\x1b[38;5;166m╔══╝╚\x1b[38;5;202m██\x1b[38;5;166m╗ \x1b[38;5;202m██\x1b[38;5;166m╔╝\x1b[38;5;202m██\x1b[38;5;166m╔══\x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╔════╝\x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║    ╚\x1b[38;5;202m████\x1b[38;5;166m╔╝ \x1b[38;5;202m██████\x1b[38;5;166m╔╝\x1b[38;5;202m█████\x1b[38;5;166m╗  \x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║     ╚\x1b[38;5;202m██\x1b[38;5;166m╔╝  \x1b[38;5;202m██\x1b[38;5;166m╔═══╝ \x1b[38;5;202m██\x1b[38;5;166m╔══╝  \x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║      \x1b[38;5;202m██\x1b[38;5;166m║   \x1b[38;5;202m██\x1b[38;5;166m║     \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
+
+    println!("\x1b[38;5;166m       ╚═╝      ╚═╝   ╚═╝     ╚══════╝ \x1b[38;5;202mWiZ.\x1b[0m");
+
+    println!();
 
     // タイトルロゴ
     println!();

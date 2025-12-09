@@ -6,12 +6,13 @@
 use bincode::config::standard;
 use bincode::{Decode, Encode};
 use chrono::{DateTime, TimeZone, Utc};
+use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
+
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-const SAVE_FILE_BIN: &str = "save_data.bin";
 const SAVE_FILE_JSON: &str = "save_data.json"; // デバッグ用
 
 /// 1回ごとのお題の記録
@@ -133,8 +134,28 @@ impl Default for PlayerData {
 }
 
 impl PlayerData {
+    // MARK:セーブファイルのパスを取得する関数
+    fn get_save_file_path() -> PathBuf {
+        // "jp" (国), "MySchool" (組織名), "TypingGame" (アプリ名)
+        // 組織名は適当でOKですが、ユニークな名前空間を作るために使われます
+        if let Some(proj_dirs) = ProjectDirs::from("jp", "Fukumoto0141", "TYPE_WIZ") {
+            // OSごとのデータ保存用ディレクトリパスを取得
+            let data_dir = proj_dirs.data_dir();
+
+            // ディレクトリがまだなければ作成する（これ重要！）
+            if !data_dir.exists() {
+                fs::create_dir_all(data_dir).expect("データディレクトリの作成に失敗しました");
+            }
+
+            // パスとファイル名を結合して返す
+            return data_dir.join("save_data.bin");
+        }
+
+        // 万が一取得できなかったらカレントディレクトリに（フォールバック）
+        PathBuf::from("save_data.bin")
+    }
+
     /// 次のレベルまでに必要な経験値を計算する
-    // 計算式: (レベル ^ 1.5) * 100
     pub fn required_xp_for_next_level(&self) -> u32 {
         ((self.level as f64).powf(1.1) * 10.0).round() as u32
     }
@@ -155,10 +176,12 @@ impl PlayerData {
         leveled_up
     }
 
-    /// データをファイルに保存する (バイナリ + JSON)
+    /// MARK:データをファイルに保存する (バイナリ + JSON)
     pub fn save(&self) {
+        let path = Self::get_save_file_path(); // ← パスを取得
+
         // --- 1. バイナリ形式で保存 (本番用) ---
-        if let Ok(file) = File::create(SAVE_FILE_BIN) {
+        if let Ok(file) = File::create(&path) {
             let mut writer = BufWriter::new(file);
             let config = standard();
             let bin_data = PlayerDataBin::from(self);
@@ -173,15 +196,19 @@ impl PlayerData {
         }
     }
 
-    /// ファイルからデータを読み込む (バイナリ優先、JSONフォールバック)
+    /// MARK:ファイルからデータを読み込む (バイナリ優先、JSONフォールバック)
     pub fn load() -> Self {
+        let path = Self::get_save_file_path(); // ← パスを取得
+
         // 1. バイナリファイルから読み込みを試行
-        if Path::new(SAVE_FILE_BIN).exists() {
-            if let Ok(mut file) = File::open(SAVE_FILE_BIN) {
+        if Path::new(&path).exists() {
+            if let Ok(mut file) = File::open(&path) {
                 let mut buffer = Vec::new();
                 if file.read_to_end(&mut buffer).is_ok() {
                     let config = standard();
-                    if let Ok((bin_data, _)) = bincode::decode_from_slice::<PlayerDataBin, _>(&buffer, config) {
+                    if let Ok((bin_data, _)) =
+                        bincode::decode_from_slice::<PlayerDataBin, _>(&buffer, config)
+                    {
                         return PlayerData::from(bin_data);
                     }
                 }
@@ -197,7 +224,7 @@ impl PlayerData {
                 }
             }
         }
-        
+
         // どちらも失敗した場合はデフォルト
         Self::default()
     }
