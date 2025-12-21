@@ -3,7 +3,9 @@
 ; Non-commercial use only
 
 #define MyAppName "typewiz"
-#define MyAppVersion "0.1.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "0.0.0"  ; コマンドライン引数がない時だけこれが使われる
+#endif
 #define MyAppPublisher "Fukumoto0141"
 #define MyAppExeName "typewiz.exe"
 #define MyAppAssocName MyAppName + " File"
