@@ -6,12 +6,12 @@ on:
       - 'v*'   # タグを打ったらリリース
 
 jobs:
-  build:
+  build-and-release:
     runs-on: windows-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -19,28 +19,25 @@ jobs:
       - name: Build Rust app
         run: cargo build --release
 
+      - name: Get version from tag
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
       - name: Build installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.0.0
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
           path: 'installer_setup.iss'
+          options: /DMyAppVersion=${{ env.VERSION }}
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: typewiz_installer
-          path: "typewiz_*_installer.exe"
-
-
-  release:
-    needs: build
-    runs-on: windows-latest
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: typewiz_installer
-
+      - name: Prepare Release Files
+        shell: bash
+        run: |
+          cp target/release/typewiz.exe ./typewiz.exe
+      
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: typewiz_*_installer.exe
+          files: |
+            typewiz.exe
+            typewiz_*_installer.exe

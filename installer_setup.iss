@@ -11,8 +11,6 @@
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
 
 [Setup]
-; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
-; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{10303034-A00E-47B3-8234-67E1A8554B05}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -30,12 +28,12 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ChangesAssociations=yes
 DisableProgramGroupPage=yes
-LicenseFile=./LICENSE
-; Uncomment the following line to run in non administrative install mode (install for current user only).
-;PrivilegesRequired=lowest
-OutputDir=build
+; ★パスを相対パスに修正
+LicenseFile=LICENSE
+; GitHub Actionsで扱いやすいよう、出力先をカレントディレクトリ（.）に変更
+OutputDir=.
 OutputBaseFilename={#MyAppName}_{#MyAppVersion}_installer
-SetupIconFile=./archives\product_icon.ico
+SetupIconFile=archives\product_icon.ico
 SolidCompression=yes
 WizardStyle=modern windows11
 
@@ -48,7 +46,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "addtopath"; Description: "Add installation directory to PATH"; GroupDescription: "Additional Options"; Flags: unchecked
 
 [Files]
-Source: "./target\release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "target\release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
