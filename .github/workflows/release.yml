@@ -45,19 +45,19 @@ jobs:
           options: /DMyAppVersion=${{ env.VERSION }}
 
       - name: Prepare Release Assets
-        shell: bash
+        shell: pwsh  # PowerShellを使用
         run: |
-          VERSION=${{ env.VERSION }}
-          ASSET_NAME="typewiz-v${VERSION}-x86_64-pc-windows-msvc"
+          $VERSION = "${{ env.VERSION }}"
+          $ASSET_NAME = "typewiz-v${VERSION}-x86_64-pc-windows-msvc"
           
-          mkdir $ASSET_NAME
-          cp target/release/typewiz.exe ./$ASSET_NAME/
-          cp LICENSE ./$ASSET_NAME/
+          Copy-Item "target/release/typewiz.exe" -Destination "./typewiz.exe"
+          Copy-Item "LICENSE" -Destination "./LICENSE"
           
-          7z a -tzip -mm=deflate "${ASSET_NAME}.zip" "./${ASSET_NAME}/*"
+          Compress-Archive -Path "./typewiz.exe", "./LICENSE" -DestinationPath "./${ASSET_NAME}.zip"
           
-          INSTALLER_NAME="typewiz_${VERSION}_installer.exe"
-          sha256sum "${ASSET_NAME}.zip" "$INSTALLER_NAME" > checksums.txt
+          Get-ChildItem -Filter "typewiz_${VERSION}_installer.exe" -Recurse | Copy-Item -Destination "./"
+          
+          sh -c "sha256sum ${ASSET_NAME}.zip typewiz_${VERSION}_installer.exe > checksums.txt"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
