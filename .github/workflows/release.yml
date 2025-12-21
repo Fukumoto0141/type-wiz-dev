@@ -45,19 +45,33 @@ jobs:
           options: /DMyAppVersion=${{ env.VERSION }}
 
       - name: Prepare Release Assets
-        shell: pwsh  # PowerShellを使用
+        shell: pwsh
         run: |
           $VERSION = "${{ env.VERSION }}"
           $ASSET_NAME = "typewiz-v${VERSION}-x86_64-pc-windows-msvc"
+          $ZIP_FILE = "${ASSET_NAME}.zip"
+          $INSTALLER_FILE = "typewiz_${VERSION}_installer.exe"
           
-          Copy-Item "target/release/typewiz.exe" -Destination "./typewiz.exe"
-          Copy-Item "LICENSE" -Destination "./LICENSE"
+          Copy-Item "target/release/typewiz.exe" -Destination "./typewiz.exe" -Force
           
-          Compress-Archive -Path "./typewiz.exe", "./LICENSE" -DestinationPath "./${ASSET_NAME}.zip"
+          Compress-Archive -Path "./typewiz.exe", "./LICENSE" -DestinationPath "./$ZIP_FILE" -CompressionLevel Optimal
           
-          Get-ChildItem -Filter "typewiz_${VERSION}_installer.exe" -Recurse | Copy-Item -Destination "./"
+          $foundInstaller = Get-ChildItem -Filter "$INSTALLER_FILE" -Recurse | Select-Object -First 1
+          if ($foundInstaller) {
+              Copy-Item $foundInstaller.FullName -Destination "./$INSTALLER_FILE" -Force
+          } else {
+              Write-Error "Installer file not found: $INSTALLER_FILE"
+              exit 1
+          }
           
-          sh -c "sha256sum ${ASSET_NAME}.zip typewiz_${VERSION}_installer.exe > checksums.txt"
+          $zipHash = (Get-FileHash -Path "./$ZIP_FILE" -Algorithm SHA256).Hash.ToLower()
+          $instHash = (Get-FileHash -Path "./$INSTALLER_FILE" -Algorithm SHA256).Hash.ToLower()
+          
+          "$zipHash  $ZIP_FILE" | Out-File -FilePath "checksums.txt" -Encoding ascii
+          "$instHash  $INSTALLER_FILE" | Out-File -FilePath "checksums.txt" -Encoding ascii -Append
+          
+          Write-Host "Generated Checksums:"
+          Get-Content "checksums.txt"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
