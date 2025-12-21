@@ -52,27 +52,39 @@ jobs:
           $ZIP_FILE = "${ASSET_NAME}.zip"
           $INSTALLER_FILE = "typewiz_${VERSION}_installer.exe"
           
-          Copy-Item "target/release/typewiz.exe" -Destination "./typewiz.exe" -Force
+          # 1. バイナリをルートにコピー (ビルド直後は target/release にある)
+          if (Test-Path "target/release/typewiz.exe") {
+              Copy-Item "target/release/typewiz.exe" -Destination "./typewiz.exe" -Force
+          }
+
+          # 2. Zip作成 (カレントディレクトリの typewiz.exe と LICENSE を固める)
+          Compress-Archive -Path "./typewiz.exe", "./LICENSE" -DestinationPath "./$ZIP_FILE" -CompressionLevel Optimal -Force
           
-          Compress-Archive -Path "./typewiz.exe", "./LICENSE" -DestinationPath "./$ZIP_FILE" -CompressionLevel Optimal
+          # 3. インストーラーをルートに集める
+          # 自分自身をコピーしないよう、現在の場所以外から探す
+          $foundInstaller = Get-ChildItem -Filter "$INSTALLER_FILE" -Recurse | Where-Object { $_.DirectoryName -ne (Get-Location).Path } | Select-Object -First 1
           
-          $foundInstaller = Get-ChildItem -Filter "$INSTALLER_FILE" -Recurse | Select-Object -First 1
           if ($foundInstaller) {
+              Write-Host "Found installer at: $($foundInstaller.FullName). Copying to root..."
               Copy-Item $foundInstaller.FullName -Destination "./$INSTALLER_FILE" -Force
           } else {
-              Write-Error "Installer file not found: $INSTALLER_FILE"
-              exit 1
+              if (Test-Path "./$INSTALLER_FILE") {
+                  Write-Host "Installer is already in root."
+              } else {
+                  Write-Error "Installer file not found: $INSTALLER_FILE"
+                  exit 1
+              }
           }
           
+          # 4. チェックサム作成
           $zipHash = (Get-FileHash -Path "./$ZIP_FILE" -Algorithm SHA256).Hash.ToLower()
           $instHash = (Get-FileHash -Path "./$INSTALLER_FILE" -Algorithm SHA256).Hash.ToLower()
           
           "$zipHash  $ZIP_FILE" | Out-File -FilePath "checksums.txt" -Encoding ascii
           "$instHash  $INSTALLER_FILE" | Out-File -FilePath "checksums.txt" -Encoding ascii -Append
           
-          Write-Host "Generated Checksums:"
+          Write-Host "Final Checksums:"
           Get-Content "checksums.txt"
-
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
