@@ -54,7 +54,7 @@ jobs:
           cp target/release/typewiz.exe ./$ASSET_NAME/
           cp LICENSE ./$ASSET_NAME/
           
-          7z a "${ASSET_NAME}.zip" "./${ASSET_NAME}/*"
+          7z a -tzip -mm=deflate "${ASSET_NAME}.zip" "./${ASSET_NAME}/*"
           
           INSTALLER_NAME="typewiz_${VERSION}_installer.exe"
           sha256sum "${ASSET_NAME}.zip" "$INSTALLER_NAME" > checksums.txt
