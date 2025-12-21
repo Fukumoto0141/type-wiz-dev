@@ -6,7 +6,7 @@ on:
   push:
     tags:
       - 'v*'   # タグを打ったらリリース
-      
+
 jobs:
   # --- ジョブ1: ビルドとアーティファクトのアップロード ---
   build:
@@ -37,29 +37,33 @@ jobs:
           path: 'installer_setup.iss'
           options: /DMyAppVersion=${{ env.VERSION }}
 
-      - name: Generate Checksums
+      - name: Prepare Release Assets
         shell: bash
         run: |
-          INSTALLER_NAME="typewiz_${{ env.VERSION }}_installer.exe"
-          BINARY_NAME="typewiz.exe"
-          cp target/release/typewiz.exe ./$BINARY_NAME
-          sha256sum $BINARY_NAME $INSTALLER_NAME > checksums.txt
+          VERSION=${{ env.VERSION }}
+          ASSET_NAME="typewiz-v${VERSION}-x86_64-pc-windows-msvc"
+          
+          mkdir $ASSET_NAME
+          cp target/release/typewiz.exe ./$ASSET_NAME/
+          cp LICENSE ./$ASSET_NAME/
+          
+          7z a "${ASSET_NAME}.zip" "./${ASSET_NAME}/*"
+          
+          INSTALLER_NAME="typewiz_${VERSION}_installer.exe"
+          sha256sum "${ASSET_NAME}.zip" "$INSTALLER_NAME" > checksums.txt
 
-      # v4 を使用してビルド成果物を一時保存
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-assets
           path: |
-            typewiz.exe
-            typewiz_${{ env.VERSION }}_installer.exe
+            *.zip
+            typewiz_*_installer.exe
             checksums.txt
-          retention-days: 1 # リリース用なので短期間でOK
 
-  # --- ジョブ2: アーティファクトのダウンロードとリリース作成 ---
   release:
     needs: build
-    runs-on: ubuntu-latest # リリース作業だけなら軽量なUbuntuで十分です
+    runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
@@ -70,9 +74,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          # download-artifactで指定したpathの中身を指定
           files: |
-            ./release-files/typewiz.exe
+            ./release-files/*.zip
             ./release-files/typewiz_*_installer.exe
             ./release-files/checksums.txt
         env:
