@@ -28,6 +28,13 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Sync Cargo.toml version with tag
+        shell: bash
+        run: |
+          VERSION=${{ env.VERSION }}
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+          echo "Cargo.toml updated to $VERSION"
+
       - name: Build Rust app
         run: cargo build --release
 

@@ -400,7 +400,14 @@ fn main() -> Result<()> {
         None => app_state.mode = AppMode::Menu,
     }
 
-    let _ = update();
+    if let Err(e) = update() {
+        if e.to_string().contains("Access is denied") {
+            eprintln!("エラー: 書き込み権限がありません。");
+            eprintln!("管理者として実行するか、一度アンインストールして最新版をインストールし直してください。");
+        } else {
+            eprintln!("アップデート失敗: {}", e);
+        }
+    }    
     
     loop {
         match app_state.mode {
@@ -431,6 +438,23 @@ fn main() -> Result<()> {
 fn show_menu(app_state: &mut AppState) -> Result<bool> {
     
     let term = Term::stdout();
+
+    // タイトルロゴ
+    println!();
+
+    println!("\x1b[38;5;202m    ████████\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╗   \x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██████\x1b[38;5;166m╗ \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
+
+    println!("    \x1b[38;5;166m╚══\x1b[38;5;202m██\x1b[38;5;166m╔══╝╚\x1b[38;5;202m██\x1b[38;5;166m╗ \x1b[38;5;202m██\x1b[38;5;166m╔╝\x1b[38;5;202m██\x1b[38;5;166m╔══\x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╔════╝\x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║    ╚\x1b[38;5;202m████\x1b[38;5;166m╔╝ \x1b[38;5;202m██████\x1b[38;5;166m╔╝\x1b[38;5;202m█████\x1b[38;5;166m╗  \x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║     ╚\x1b[38;5;202m██\x1b[38;5;166m╔╝  \x1b[38;5;202m██\x1b[38;5;166m╔═══╝ \x1b[38;5;202m██\x1b[38;5;166m╔══╝  \x1b[0m");
+
+    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║      \x1b[38;5;202m██\x1b[38;5;166m║   \x1b[38;5;202m██\x1b[38;5;166m║     \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
+
+    println!("\x1b[38;5;166m       ╚═╝      ╚═╝   ╚═╝     ╚══════╝ \x1b[38;5;202mWiZ.\x1b[0m");
+
+    println!();
 
     // タイトルロゴ
     println!();
