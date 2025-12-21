@@ -36,7 +36,7 @@ jobs:
           cp target/release/typewiz.exe ./typewiz.exe
       
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             typewiz.exe

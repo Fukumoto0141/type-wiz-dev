@@ -33,7 +33,7 @@ LicenseFile=LICENSE
 ; GitHub Actionsで扱いやすいよう、出力先をカレントディレクトリ（.）に変更
 OutputDir=.
 OutputBaseFilename={#MyAppName}_{#MyAppVersion}_installer
-SetupIconFile=archives\product_icon.ico
+SetupIconFile=assets\product_icon.ico
 SolidCompression=yes
 WizardStyle=modern windows11
 
