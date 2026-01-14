@@ -187,10 +187,10 @@ impl<'a> AppState<'a> {
             show_cps_graph: true,
         };
         
-        // 過去の記録から履歴データを読み込む（最新30件）
+        // 過去の記録から履歴データを読み込む（最新100件）
         let recent_records: Vec<_> = state.player_data.history.iter()
             .rev()
-            .take(30)
+            .take(200)
             .rev()
             .collect();
         
@@ -402,13 +402,13 @@ impl<'a> AppState<'a> {
             self.player_data.total_misses += misses;
             self.player_data.save();
 
-            // Sparkline用の履歴データを更新（最大30件まで保持）
+            // Sparkline用の履歴データを更新（最新100件まで保持）
             self.cps_history.push(cps.round() as u64);
-            if self.cps_history.len() > 30 {
+            if self.cps_history.len() > 200 {
                 self.cps_history.remove(0);
             }
             self.score_history.push(score.round() as u64);
-            if self.score_history.len() > 30 {
+            if self.score_history.len() > 200 {
                 self.score_history.remove(0);
             }
         }
@@ -759,9 +759,19 @@ fn ui_typing(f: &mut Frame, app_state: &AppState) {
     };
 
     if !graph_data.is_empty() {
+        // ウィンドウ幅に応じて表示するデータ数を動的に調整
+        // Sparklineの幅からボーダー分(2)を引いた値を最大データ数とする
+        let available_width = chunks[6].width.saturating_sub(2) as usize;
+        let data_to_show = if graph_data.len() <= available_width {
+            graph_data.as_slice()
+        } else {
+            // 最新のデータから幅分だけ取得
+            &graph_data[graph_data.len() - available_width..]
+        };
+        
         let sparkline = Sparkline::default()
             .block(Block::default().borders(Borders::ALL).title(graph_title))
-            .data(graph_data)
+            .data(data_to_show)
             .style(Style::default().fg(graph_color));
         f.render_widget(sparkline, chunks[6]);
     } else {
