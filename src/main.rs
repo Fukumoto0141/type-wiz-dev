@@ -21,7 +21,7 @@ use ratatui::{
     prelude::*,
     style::{Color, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Gauge},
+    widgets::{Block, Borders, Paragraph, Gauge, Sparkline},
 };
 
 // `src/questions.rs` をモジュールとして読み込む
@@ -145,6 +145,13 @@ struct AppState<'a> {
 
     /// プレイヤーデータ
     player_data: PlayerData,
+
+    /// Sparkline用のデータ（最近のCPS履歴）
+    cps_history: Vec<u64>,
+    /// Sparkline用のデータ（最近のスコア履歴）
+    score_history: Vec<u64>,
+    /// Sparklineの表示モード: true = CPS, false = Score
+    show_cps_graph: bool,
 }
 
 impl<'a> AppState<'a> {
@@ -174,7 +181,24 @@ impl<'a> AppState<'a> {
 
             roman_map: create_roman_mapping(),
             player_data: PlayerData::load(),
+
+            cps_history: Vec::new(),
+            score_history: Vec::new(),
+            show_cps_graph: true,
         };
+        
+        // 過去の記録から履歴データを読み込む（最新30件）
+        let recent_records: Vec<_> = state.player_data.history.iter()
+            .rev()
+            .take(30)
+            .rev()
+            .collect();
+        
+        for record in recent_records {
+            state.cps_history.push(record.cps.round() as u64);
+            state.score_history.push(record.score.round() as u64);
+        }
+        
         state.load_current_question();
         state
     }
@@ -377,6 +401,16 @@ impl<'a> AppState<'a> {
             self.player_data.add_xp(final_xp, total_chars as u32);
             self.player_data.total_misses += misses;
             self.player_data.save();
+
+            // Sparkline用の履歴データを更新（最大30件まで保持）
+            self.cps_history.push(cps.round() as u64);
+            if self.cps_history.len() > 30 {
+                self.cps_history.remove(0);
+            }
+            self.score_history.push(score.round() as u64);
+            if self.score_history.len() > 30 {
+                self.score_history.remove(0);
+            }
         }
         
         self.current_question_index = (self.current_question_index + 1) % self.questions.len();
@@ -531,6 +565,10 @@ fn run_typing_mode(app_state: &mut AppState) -> Result<()> {
                             return Ok(());
                         }
                         KeyCode::Backspace => app_state.handle_backspace(),
+                        KeyCode::Tab => {
+                            // Sparklineの表示切り替え
+                            app_state.show_cps_graph = !app_state.show_cps_graph;
+                        }
                         KeyCode::Char(c) => {
                             app_state.handle_char_input(c);
                             if app_state.is_question_complete() {
@@ -615,6 +653,7 @@ fn ui_typing(f: &mut Frame, app_state: &AppState) {
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Min(1),
+            Constraint::Length(4),
         ])
         .split(inner_area);
 
@@ -711,4 +750,25 @@ fn ui_typing(f: &mut Frame, app_state: &AppState) {
         Paragraph::new(Line::from(spans)).centered(),
         chunks[5]
     );
+
+    // Sparkline（タイピング速度またはスコアの推移グラフ）
+    let (graph_data, graph_title, graph_color) = if app_state.show_cps_graph {
+        (&app_state.cps_history, " CPS History (Tab to switch) ", Color::Cyan)
+    } else {
+        (&app_state.score_history, " Score History (Tab to switch) ", Color::Yellow)
+    };
+
+    if !graph_data.is_empty() {
+        let sparkline = Sparkline::default()
+            .block(Block::default().borders(Borders::ALL).title(graph_title))
+            .data(graph_data)
+            .style(Style::default().fg(graph_color));
+        f.render_widget(sparkline, chunks[6]);
+    } else {
+        let placeholder = Paragraph::new("No data yet...")
+            .block(Block::default().borders(Borders::ALL).title(graph_title))
+            .style(Style::default().fg(Color::DarkGray))
+            .centered();
+        f.render_widget(placeholder, chunks[6]);
+    }
 }
