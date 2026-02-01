@@ -989,6 +989,14 @@ fn ui_log_growth_chart(f: &mut Frame, area: Rect, app_state: &AppState) {
     let cps_max = growth_cps.iter().map(|(_, y)| *y).fold(0.0f64, f64::max);
     let score_max = growth_score.iter().map(|(_, y)| *y).fold(0.0f64, f64::max);
 
+    let top_cols = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(50),
+            Constraint::Percentage(50),
+        ])
+        .split(chunks[0]);
+
     let cps_dataset = Dataset::default()
         .name("Avg CPS")
         .marker(symbols::Marker::Braille)
@@ -996,15 +1004,8 @@ fn ui_log_growth_chart(f: &mut Frame, area: Rect, app_state: &AppState) {
         .style(Style::default().fg(Color::Cyan))
         .data(&growth_cps);
 
-    let score_dataset = Dataset::default()
-        .name("Avg Score")
-        .marker(symbols::Marker::Braille)
-        .graph_type(GraphType::Line)
-        .style(Style::default().fg(Color::Yellow))
-        .data(&growth_score);
-
-    let growth_chart = Chart::new(vec![cps_dataset, score_dataset])
-        .block(Block::default().borders(Borders::ALL).title(" Growth Trend (Cumulative Avg) "))
+    let cps_chart = Chart::new(vec![cps_dataset])
+        .block(Block::default().borders(Borders::ALL).title(" Avg CPS (Cumulative) "))
         .x_axis(
             Axis::default()
                 .title("Session")
@@ -1013,11 +1014,40 @@ fn ui_log_growth_chart(f: &mut Frame, area: Rect, app_state: &AppState) {
         )
         .y_axis(
             Axis::default()
-                .title("Value")
+                .title("CPS")
                 .style(Style::default().fg(Color::Gray))
-                .bounds([0.0, (cps_max.max(score_max) * 1.1).max(1.0)])
+                .bounds([0.0, (cps_max * 1.1).max(1.0)])
         );
-    f.render_widget(growth_chart, chunks[0]);
+    f.render_widget(cps_chart, top_cols[0]);
+
+    let score_scaled: Vec<(f64, f64)> = growth_score
+        .iter()
+        .map(|(x, y)| (*x, *y / 100.0))
+        .collect();
+    let score_scaled_max = score_scaled.iter().map(|(_, y)| *y).fold(0.0f64, f64::max);
+
+    let score_dataset = Dataset::default()
+        .name("Avg Score/100")
+        .marker(symbols::Marker::Braille)
+        .graph_type(GraphType::Line)
+        .style(Style::default().fg(Color::Yellow))
+        .data(&score_scaled);
+
+    let score_chart = Chart::new(vec![score_dataset])
+        .block(Block::default().borders(Borders::ALL).title(" Avg Score (Cumulative, /100) "))
+        .x_axis(
+            Axis::default()
+                .title("Session")
+                .style(Style::default().fg(Color::Gray))
+                .bounds([0.0, (history_len as f64).max(1.0)])
+        )
+        .y_axis(
+            Axis::default()
+                .title("Score")
+                .style(Style::default().fg(Color::Gray))
+                .bounds([0.0, (score_scaled_max * 1.1).max(1.0)])
+        );
+    f.render_widget(score_chart, top_cols[1]);
 
     // 日別XP（棒グラフ）
     let mut day_map: Vec<(chrono::NaiveDate, u32)> = Vec::new();
