@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use std::io::{Result, stdout};
+use std::process::Command;
 use std::time::{Duration, Instant};
 
 
@@ -472,14 +473,24 @@ fn main() -> Result<()> {
         None => app_state.mode = AppMode::Menu,
     }
 
-    if let Err(e) = update() {
-        if e.to_string().contains("Access is denied") {
-            eprintln!("エラー: 書き込み権限がありません。");
-            eprintln!("管理者として実行するか、一度アンインストールして最新版をインストールし直してください。");
-        } else {
-            eprintln!("アップデート失敗: {}", e);
+    match update() {
+        Ok(status) => {
+            if status.updated() {
+                if let Err(e) = relaunch_current_exe() {
+                    eprintln!("再起動に失敗しました: {}", e);
+                }
+                std::process::exit(0);
+            }
         }
-    }    
+        Err(e) => {
+            if e.to_string().contains("Access is denied") {
+                eprintln!("エラー: 書き込み権限がありません。");
+                eprintln!("管理者として実行するか、一度アンインストールして最新版をインストールし直してください。");
+            } else {
+                eprintln!("アップデート失敗: {}", e);
+            }
+        }
+    }
 
     loop {
         match app_state.mode {
@@ -503,6 +514,13 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+fn relaunch_current_exe() -> Result<()> {
+    let exe = std::env::current_exe()?;
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    Command::new(exe).args(args).status()?;
+    Ok(())
+}
+
 // --------------------------------------------------
 // MARK:メニュー表示（通常スクリーン）
 // --------------------------------------------------
@@ -511,6 +529,7 @@ fn show_menu(app_state: &mut AppState) -> Result<bool> {
     
     let term = Term::stdout();
 
+
     // タイトルロゴ
     println!();
 
@@ -527,24 +546,6 @@ fn show_menu(app_state: &mut AppState) -> Result<bool> {
     println!("\x1b[38;5;166m       ╚═╝      ╚═╝   ╚═╝     ╚══════╝ \x1b[38;5;202mWiZ.\x1b[0m");
 
     println!();
-
-    // タイトルロゴ
-        println!();
-
-    println!("\x1b[38;5;202m    ████████\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╗   \x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██████\x1b[38;5;166m╗ \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
-
-    println!("    \x1b[38;5;166m╚══\x1b[38;5;202m██\x1b[38;5;166m╔══╝╚\x1b[38;5;202m██\x1b[38;5;166m╗ \x1b[38;5;202m██\x1b[38;5;166m╔╝\x1b[38;5;202m██\x1b[38;5;166m╔══\x1b[38;5;202m██\x1b[38;5;166m╗\x1b[38;5;202m██\x1b[38;5;166m╔════╝\x1b[0m");
-
-    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║    ╚\x1b[38;5;202m████\x1b[38;5;166m╔╝ \x1b[38;5;202m██████\x1b[38;5;166m╔╝\x1b[38;5;202m█████\x1b[38;5;166m╗  \x1b[0m");
-
-    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║     ╚\x1b[38;5;202m██\x1b[38;5;166m╔╝  \x1b[38;5;202m██\x1b[38;5;166m╔═══╝ \x1b[38;5;202m██\x1b[38;5;166m╔══╝  \x1b[0m");
-
-    println!("\x1b[38;5;202m       ██\x1b[38;5;166m║      \x1b[38;5;202m██\x1b[38;5;166m║   \x1b[38;5;202m██\x1b[38;5;166m║     \x1b[38;5;202m███████\x1b[38;5;166m╗\x1b[0m");
-
-    println!("\x1b[38;5;166m       ╚═╝      ╚═╝   ╚═╝     ╚══════╝ \x1b[38;5;202mWiZ.\x1b[0m");
-
-    println!();
-
 
     let items = vec![
         "Start Type",

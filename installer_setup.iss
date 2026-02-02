@@ -37,6 +37,8 @@ LicenseFile=LICENSE
 OutputDir=.
 OutputBaseFilename={#MyAppName}_{#MyAppVersion}_installer
 SetupIconFile=assets\product_icon.ico
+WizardImageFile=assets\wizard_image.bmp
+WizardSmallImageFile=assets\wizard_small_image.bmp
 SolidCompression=yes
 WizardStyle=modern windows11
 

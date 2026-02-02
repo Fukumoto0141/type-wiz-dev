@@ -1,6 +1,6 @@
 use self_update::cargo_crate_version;
 
-pub fn update() -> Result<(), Box<dyn std::error::Error>> {
+pub fn update() -> Result<self_update::Status, Box<dyn std::error::Error>> {
     let status = self_update::backends::github::Update::configure()
         .repo_owner("Fukumoto0141")
         .repo_name("type-wiz-dev")
@@ -10,5 +10,5 @@ pub fn update() -> Result<(), Box<dyn std::error::Error>> {
         .build()?
         .update()?;
     println!("Update status: `{}`!", status.version());
-    Ok(())
+    Ok(status)
 }
