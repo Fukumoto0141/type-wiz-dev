@@ -10,7 +10,6 @@ use std::time::{Duration, Instant};
 
 use chrono::{Utc, Datelike};
 use clap::{Parser, Subcommand};
-use console::Term;
 use crossterm::{
     ExecutableCommand,
     event::{self, Event, KeyCode},
@@ -526,10 +525,6 @@ fn relaunch_current_exe() -> Result<()> {
 // --------------------------------------------------
 
 fn show_menu(app_state: &mut AppState) -> Result<bool> {
-    
-    let term = Term::stdout();
-
-
     // タイトルロゴ
     println!();
 
@@ -549,9 +544,7 @@ fn show_menu(app_state: &mut AppState) -> Result<bool> {
 
     let items = vec![
         "Start Type",
-        "Mission (Coming Soon...)",
         "Game Log",
-        "Leaderboard (Coming Soon...)",
         "Settings (Coming Soon...)",
         "Exit",
     ];
@@ -567,18 +560,11 @@ fn show_menu(app_state: &mut AppState) -> Result<bool> {
             Ok(true)
         }
         Some(1) => {
-            
-            app_state.mode = AppMode::Menu;
-            term.clear_screen()?;
-
-            Ok(false)
-        }
-        Some(2) => {
             // Game Log
             app_state.mode = AppMode::Log;
             Ok(true)
         }
-        Some(5) | None => {
+        Some(3) | None => {
             // Exit or Esc
             app_state.mode = AppMode::Exit;
             Ok(false)
@@ -1003,7 +989,6 @@ fn ui_log_growth_chart(f: &mut Frame, area: Rect, app_state: &AppState) {
     }
 
     let cps_max = growth_cps.iter().map(|(_, y)| *y).fold(0.0f64, f64::max);
-    let score_max = growth_score.iter().map(|(_, y)| *y).fold(0.0f64, f64::max);
 
     let top_cols = Layout::default()
         .direction(Direction::Horizontal)
