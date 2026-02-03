@@ -75,6 +75,24 @@ impl From<TypeRecordBin> for TypeRecord {
     }
 }
 
+/// 設定データ
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, Decode)]
+pub struct Settings {
+    #[serde(default)]
+    pub hide_hiragana: bool,
+    #[serde(default)]
+    pub hide_roman_guide: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            hide_hiragana: false,
+            hide_roman_guide: false,
+        }
+    }
+}
+
 /// プレイヤーの進行状況データ
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerData {
@@ -84,11 +102,25 @@ pub struct PlayerData {
     pub total_misses: u32,
     /// 過去のタイピング記録
     pub history: Vec<TypeRecord>,
+    /// 設定
+    #[serde(default)]
+    pub settings: Settings,
 }
 
 /// bincode用の内部表現
 #[derive(Encode, Decode)]
 struct PlayerDataBin {
+    level: u32,
+    current_xp: u32,
+    total_typed_chars: u32,
+    total_misses: u32,
+    history: Vec<TypeRecordBin>,
+    settings: Settings,
+}
+
+// 旧バージョン互換用（設定なし）
+#[derive(Encode, Decode)]
+struct PlayerDataBinV1 {
     level: u32,
     current_xp: u32,
     total_typed_chars: u32,
@@ -104,6 +136,7 @@ impl From<&PlayerData> for PlayerDataBin {
             total_typed_chars: data.total_typed_chars,
             total_misses: data.total_misses,
             history: data.history.iter().map(TypeRecordBin::from).collect(),
+            settings: data.settings.clone(),
         }
     }
 }
@@ -116,6 +149,20 @@ impl From<PlayerDataBin> for PlayerData {
             total_typed_chars: bin.total_typed_chars,
             total_misses: bin.total_misses,
             history: bin.history.into_iter().map(TypeRecord::from).collect(),
+            settings: bin.settings,
+        }
+    }
+}
+
+impl From<PlayerDataBinV1> for PlayerData {
+    fn from(bin: PlayerDataBinV1) -> Self {
+        Self {
+            level: bin.level,
+            current_xp: bin.current_xp,
+            total_typed_chars: bin.total_typed_chars,
+            total_misses: bin.total_misses,
+            history: bin.history.into_iter().map(TypeRecord::from).collect(),
+            settings: Settings::default(),
         }
     }
 }
@@ -129,6 +176,7 @@ impl Default for PlayerData {
             total_typed_chars: 0,
             total_misses: 0,
             history: Vec::new(),
+            settings: Settings::default(),
         }
     }
 }
@@ -208,6 +256,12 @@ impl PlayerData {
                     let config = standard();
                     if let Ok((bin_data, _)) =
                         bincode::decode_from_slice::<PlayerDataBin, _>(&buffer, config)
+                    {
+                        return PlayerData::from(bin_data);
+                    }
+
+                    if let Ok((bin_data, _)) =
+                        bincode::decode_from_slice::<PlayerDataBinV1, _>(&buffer, config)
                     {
                         return PlayerData::from(bin_data);
                     }

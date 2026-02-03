@@ -54,6 +54,7 @@ enum AppMode {
     Menu,
     Typing,
     Log,
+    Settings,
     Exit,
 }
 
@@ -148,6 +149,7 @@ impl CharState {
 struct AppState<'a> {
     mode: AppMode,
     _menu_index: usize,         // メニューの選択インデックス
+    settings_index: usize,       // 設定画面の選択インデックス
     
     questions: Vec<&'a Question>,     // お題リストへの参照
     current_question_index: usize, // 今何問目か
@@ -166,6 +168,8 @@ struct AppState<'a> {
     
     /// 現在のお題でのミス回数
     current_misses: u32,
+    /// 直前に入力した文字（ミス表示用）
+    last_input_char: Option<char>,
     /// 直前のお題のミス回数
     last_misses: Option<u32>,
     /// 直前のお題のスコア
@@ -200,6 +204,7 @@ impl<'a> AppState<'a> {
         let mut state = Self {
             mode: AppMode::Menu,
             _menu_index: 0,
+            settings_index: 0,
             
             questions,
             current_question_index: 0,
@@ -211,6 +216,7 @@ impl<'a> AppState<'a> {
             last_time: None,
             
             current_misses: 0,
+            last_input_char: None,
             last_misses: None,
             last_score: None,
             last_xp_gained: None,
@@ -309,6 +315,7 @@ impl<'a> AppState<'a> {
     
     /// キー入力の処理
     fn handle_char_input(&mut self, c: char) {
+        self.last_input_char = Some(c);
         // タイマー開始
         if self.start_time.is_none() {
             self.start_time = Some(Instant::now());
@@ -361,6 +368,7 @@ impl<'a> AppState<'a> {
     
     /// Backspace の処理
     fn handle_backspace(&mut self) {
+        self.last_input_char = None;
         if self.current_char_index >= self.char_states.len() && self.current_char_index > 0 {
             self.current_char_index -= 1;
         }
@@ -504,6 +512,9 @@ fn main() -> Result<()> {
             AppMode::Log => {
                 show_log(&mut app_state)?;
             }
+            AppMode::Settings => {
+                show_settings(&mut app_state)?;
+            }
             AppMode::Exit => {
                 break;
             }
@@ -545,7 +556,7 @@ fn show_menu(app_state: &mut AppState) -> Result<bool> {
     let items = vec![
         "Start Type",
         "Game Log",
-        "Settings (Coming Soon...)",
+        "Settings",
         "Exit",
     ];
     
@@ -562,6 +573,11 @@ fn show_menu(app_state: &mut AppState) -> Result<bool> {
         Some(1) => {
             // Game Log
             app_state.mode = AppMode::Log;
+            Ok(true)
+        }
+        Some(2) => {
+            // Settings
+            app_state.mode = AppMode::Settings;
             Ok(true)
         }
         Some(3) | None => {
@@ -655,6 +671,121 @@ fn show_log(app_state: &mut AppState) -> Result<()> {
 }
 
 // --------------------------------------------------
+// MARK:設定表示（TUI版）
+// --------------------------------------------------
+
+fn show_settings(app_state: &mut AppState) -> Result<()> {
+    enable_raw_mode()?;
+    stdout().execute(EnterAlternateScreen)?;
+    stdout().execute(Hide)?;
+
+    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+
+    loop {
+        terminal.draw(|f| ui_settings(f, app_state))?;
+
+        if event::poll(Duration::from_millis(50))? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == event::KeyEventKind::Press {
+                    if handle_settings_key(key.code, app_state) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    disable_raw_mode()?;
+    stdout().execute(LeaveAlternateScreen)?;
+    app_state.mode = AppMode::Menu;
+    Ok(())
+}
+
+fn handle_settings_key(code: KeyCode, app_state: &mut AppState) -> bool {
+    let max_index = 2usize;
+    match code {
+        KeyCode::Up => {
+            if app_state.settings_index == 0 {
+                app_state.settings_index = max_index;
+            } else {
+                app_state.settings_index -= 1;
+            }
+        }
+        KeyCode::Down => {
+            app_state.settings_index = (app_state.settings_index + 1) % (max_index + 1);
+        }
+        KeyCode::Enter | KeyCode::Char(' ') => {
+            match app_state.settings_index {
+                0 => {
+                    app_state.player_data.settings.hide_hiragana =
+                        !app_state.player_data.settings.hide_hiragana;
+                    app_state.player_data.save();
+                }
+                1 => {
+                    app_state.player_data.settings.hide_roman_guide =
+                        !app_state.player_data.settings.hide_roman_guide;
+                    app_state.player_data.save();
+                }
+                2 => return true,
+                _ => {}
+            }
+        }
+        KeyCode::Esc | KeyCode::Char('q') => return true,
+        _ => {}
+    }
+
+    false
+}
+
+fn ui_settings(f: &mut Frame, app_state: &AppState) {
+    let size = f.area();
+    let block = Block::default().borders(Borders::ALL).title(" TYPE WiZ - Settings ");
+    let inner_area = block.inner(size);
+    f.render_widget(block, size);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(1),
+            Constraint::Length(1),
+        ])
+        .split(inner_area);
+
+    let settings = &app_state.player_data.settings;
+    let items = vec![
+        ("タイピング画面でのひらがな非表示", settings.hide_hiragana),
+        ("タイピング画面でのローマ字お手本非表示", settings.hide_roman_guide),
+        ("戻る", false),
+    ];
+
+    let mut lines = Vec::new();
+    for (i, (label, enabled)) in items.iter().enumerate() {
+        let marker = if i == app_state.settings_index { "▶" } else { " " };
+        let checkbox = if i < 2 {
+            if *enabled { "[x]" } else { "[ ]" }
+        } else {
+            "   "
+        };
+        let line = Line::from(vec![
+            Span::styled(marker, Style::default().fg(Color::Cyan)),
+            Span::raw(" "),
+            Span::raw(checkbox),
+            Span::raw(" "),
+            Span::raw(*label),
+        ]);
+        lines.push(line);
+    }
+
+    let list = Paragraph::new(lines).block(Block::default().borders(Borders::NONE));
+    f.render_widget(list, chunks[0]);
+
+    let help = Paragraph::new(" ↑↓: 選択  Space/Enter: 切替  Esc/q: 戻る ")
+        .style(Style::default().fg(Color::DarkGray))
+        .centered();
+    f.render_widget(help, chunks[1]);
+}
+
+// --------------------------------------------------
 // UI描画 - タイピング
 // --------------------------------------------------
 
@@ -724,12 +855,16 @@ fn ui_typing(f: &mut Frame, app_state: &AppState) {
     );
     
     // ひらがな
-    f.render_widget(
-        Paragraph::new(app_state.get_current_question().hiragana)
-            .style(Style::default().fg(Color::Gray))
-            .centered(),
-        chunks[4],
-    );
+    if app_state.player_data.settings.hide_hiragana {
+        f.render_widget(Paragraph::new(" "), chunks[4]);
+    } else {
+        f.render_widget(
+            Paragraph::new(app_state.get_current_question().hiragana)
+                .style(Style::default().fg(Color::Gray))
+                .centered(),
+            chunks[4],
+        );
+    }
 
     // ローマ字
     let mut spans = Vec::new();
@@ -766,10 +901,40 @@ fn ui_typing(f: &mut Frame, app_state: &AppState) {
         }
     }
 
-    f.render_widget(
-        Paragraph::new(Line::from(spans)).centered(),
-        chunks[5]
-    );
+    if app_state.player_data.settings.hide_roman_guide {
+        let mut typed_spans = Vec::new();
+        for (i, cs) in app_state.char_states.iter().enumerate() {
+            let pattern = cs.current_pattern();
+            if i < app_state.current_char_index {
+                typed_spans.push(Span::styled(pattern, Style::default().fg(Color::Green)));
+            } else if i == app_state.current_char_index {
+                let typed = &pattern[..cs.typed_count];
+                if !typed.is_empty() {
+                    typed_spans.push(Span::styled(typed, Style::default().fg(Color::Green)));
+                }
+            }
+        }
+
+        if app_state.is_error {
+            if let Some(ch) = app_state.last_input_char {
+                typed_spans.push(Span::styled(ch.to_string(), Style::default().fg(Color::Red)));
+            }
+        }
+
+        if typed_spans.is_empty() {
+            f.render_widget(Paragraph::new(" "), chunks[5]);
+        } else {
+            f.render_widget(
+                Paragraph::new(Line::from(typed_spans)).centered(),
+                chunks[5]
+            );
+        }
+    } else {
+        f.render_widget(
+            Paragraph::new(Line::from(spans)).centered(),
+            chunks[5]
+        );
+    }
 
     // Sparkline（タイピング速度またはスコアの推移グラフ）
     let (graph_data, graph_title, graph_color) = if app_state.show_cps_graph {
