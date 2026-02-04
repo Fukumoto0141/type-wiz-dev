@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>作ったもの・経緯</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;700&amp;family=M+PLUS+1+Code:wght@400;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'IBM Plex Sans JP', sans-serif;
+            background-color: #0d1117;
+            /* GitHub Dark Dimmed */
+            color: #c9d1d9;
+        }
+
+        .code-font {
+            font-family: 'M PLUS 1 Code', monospace;
+        }
+
+        .rust-orange {
+            color: #ce412b;
+        }
+
+        .border-rust {
+            border-color: #ce412b;
+        }
+
+        .card-bg {
+            background-color: #161b22;
+            /* GitHub panel bg */
+            border: 1px solid #30363d;
+        }
+
+        .card-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body class="w-[1280px] h-[720px] overflow-hidden m-0 p-0 flex flex-col">
+    <!-- Header -->
+    <div class="w-full px-12 pt-10 pb-6 flex items-center justify-between border-b border-[#30363d] bg-[#0d1117]">
+        <div class="flex items-center gap-4">
+            <div class="w-2 h-8 bg-[#ce412b] rounded-sm"></div>
+            <h1 class="text-3xl font-bold text-white tracking-wide">作ったもの・目的</h1>
+        </div>
+        <div class="text-gray-500 code-font text-sm">
+            <i class="fa-brands fa-rust mr-2"></i>rust-typing-game
+        </div>
+    </div>
+    <!-- Main Content -->
+    <div class="flex-1 flex gap-8 p-12 items-stretch justify-center">
+        <!-- Section 1: 作ったもの -->
+        <div class="flex-1 card-bg rounded-lg shadow-xl flex flex-col relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#ce412b] to-orange-600"></div>
+            <div class="card-header p-6 flex items-center gap-4">
+                <div class="icon-box bg-[#ce412b22] text-[#ce412b]">
+                    <i class="fa-solid fa-terminal text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">PROJECT OVERVIEW</p>
+                    <h2 class="text-2xl font-bold text-white">作ったもの</h2>
+                </div>
+            </div>
+            <div class="p-8 flex-1">
+                <div class="mb-6">
+                    <p class="text-xl font-bold text-white mb-2">Rust製CLIタイピング練習ゲーム</p>
+                    <p class="text-gray-400 text-sm">Command Line Interface Application</p>
+                </div>
+                <ul class="space-y-6">
+                    <li class="flex items-start gap-4">
+                        <div class="mt-1.5 w-2 h-2 rounded-full bg-[#ce412b] flex-shrink-0"></div>
+                        <div>
+                            <p class="text-gray-200 font-medium text-lg mb-1">低レイテンシ入力計測</p>
+                            <p class="text-gray-500 text-sm">キー入力の反応速度を重視し、プレイ結果を正確に集計</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <div class="mt-1.5 w-2 h-2 rounded-full bg-[#ce412b] flex-shrink-0"></div>
+                        <div>
+                            <p class="text-gray-200 font-medium text-lg mb-1">シームレスなプレイ体験</p>
+                            <p class="text-gray-500 text-sm">いつでも開始・中断可能</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <div class="mt-1.5 w-2 h-2 rounded-full bg-[#ce412b] flex-shrink-0"></div>
+                        <div>
+                            <p class="text-gray-200 font-medium text-lg mb-1">リッチなTUI体験</p>
+                            <p class="text-gray-500 text-sm">Crossterm等のクレートを活用した視覚的なインターフェース</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <!-- Bottom decorative code -->
+            <div class="bg-[#010409] p-4 border-t border-[#30363d]">
+                <p class="code-font text-xs text-gray-600">
+                    <span class="text-[#ce412b]">fn</span> <span class="text-[#d2a8ff]">main</span>() { <span
+                        class="text-gray-500">// Start typing game...</span> }
+                </p>
+            </div>
+        </div>
+        <!-- Section 2: 経緯 -->
+        <div class="flex-1 card-bg rounded-lg shadow-xl flex flex-col relative overflow-hidden group">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gray-600"></div>
+            <div class="card-header p-6 flex items-center gap-4">
+                <div class="icon-box bg-gray-800 text-gray-300">
+                    <i class="fa-solid fa-code-branch text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">MOTIVATION</p>
+                    <h2 class="text-2xl font-bold text-white">開発の目的</h2>
+                </div>
+            </div>
+            <div class="p-8 flex-1">
+                <div class="mb-6">
+                    <p class="text-xl font-bold text-white mb-2">Why Rust?</p>
+                    <p class="text-gray-400 text-sm">Learning &amp; Challenge</p>
+                </div>
+                <ul class="space-y-6">
+                    <li class="flex items-start gap-4">
+                        <div
+                            class="mt-1 bg-gray-700 rounded p-1 text-xs text-white code-font border border-gray-600 w-16 text-center flex-shrink-0">
+                            PERF</div>
+                        <div>
+                            <p class="text-gray-200 font-medium text-lg mb-1">高速な言語の学習</p>
+                            <p class="text-gray-500 text-sm">JavaScript以外の選択肢として、ネイティブ並みの速度が出るRustを選択</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <div
+                            class="mt-1 bg-gray-700 rounded p-1 text-xs text-white code-font border border-gray-600 w-16 text-center flex-shrink-0">
+                            SKILL</div>
+                        <div>
+                            <p class="text-gray-200 font-medium text-lg mb-1">システム開発経験</p>
+                            <p class="text-gray-500 text-sm">システムプログラミングやCLIツール配布のノウハウを獲得したい</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <div
+                            class="mt-1 bg-gray-700 rounded p-1 text-xs text-white code-font border border-gray-600 w-16 text-center flex-shrink-0">
+                            SAFETY</div>
+                        <div>
+                            <p class="text-gray-200 font-medium text-lg mb-1">品質向上への期待</p>
+                            <p class="text-gray-500 text-sm">型安全性・所有権システムによるバグの少ない開発を体験</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <!-- Bottom decorative code -->
+            <div class="bg-[#010409] p-4 border-t border-[#30363d]">
+                <p class="code-font text-xs text-gray-600">
+                    <span class="text-[#ce412b]">let</span> motivation = <span
+                        class="text-[#a5d6ff]">String</span>::from(<span class="text-[#a5d6ff]">"Learn Rust"</span>);
+                </p>
+            </div>
+        </div>
+    </div>
+    <!-- Page Number -->
+    <div class="absolute bottom-6 right-8 text-gray-600 code-font text-sm">
+        02 / 05
+    </div>
+    <script src="slideshow.js"></script>
+</body>
+
+</html>

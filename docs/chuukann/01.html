@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Rust製CLIタイピングゲーム 中間発表</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;700&amp;family=M+PLUS+1+Code:wght@400;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'IBM Plex Sans JP', sans-serif;
+            background-color: #0d1117;
+            /* GitHub Dark Dimmed style */
+            color: #c9d1d9;
+        }
+
+        .code-font {
+            font-family: 'M PLUS 1 Code', monospace;
+        }
+
+        .rust-orange {
+            color: #ce412b;
+            /* Rust logo color approx */
+        }
+
+        .bg-rust-orange {
+            background-color: #ce412b;
+        }
+
+        .terminal-window {
+            background-color: #161b22;
+            /* GitHub Dark inner content */
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .terminal-header {
+            background-color: #21262d;
+            border-bottom: 1px solid #30363d;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .grid-bg {
+            background-image: linear-gradient(#30363d 1px, transparent 1px), linear-gradient(90deg, #30363d 1px, transparent 1px);
+            background-size: 60px 60px;
+            background-position: center top;
+            opacity: 0.08;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 20px rgba(206, 65, 43, 0.3);
+        }
+    </style>
+</head>
+
+<body class="w-[1280px] h-[720px] overflow-hidden m-0 p-0 flex flex-col">
+    <div class="flex-1 flex flex-col relative overflow-hidden">
+        <!-- Background decoration -->
+        <div class="absolute inset-0 grid-bg"></div>
+        <!-- Decorative elements -->
+        <div class="absolute -top-20 -right-20 w-96 h-96 bg-gray-800 rounded-full filter blur-3xl opacity-20"></div>
+        <div class="absolute -bottom-20 -left-20 w-96 h-96 bg-[#ce412b] rounded-full filter blur-3xl opacity-10"></div>
+        <!-- Main Content -->
+        <div class="z-10 flex-1 flex items-center justify-center p-12">
+            <div class="w-full max-w-5xl flex flex-col gap-10 items-center">
+                <!-- Badge Area -->
+                <div class="flex items-center gap-3 mb-2 animate-pulse">
+                    <span
+                        class="px-4 py-1.5 rounded-full border border-gray-600 text-sm font-medium text-gray-400 flex items-center gap-2 bg-[#161b22]">
+                        <i class="fa-solid fa-terminal text-xs"></i> CLI Application
+                    </span>
+                    <span
+                        class="px-4 py-1.5 rounded-full border border-[#ce412b] text-sm font-medium text-[#ce412b] flex items-center gap-2 bg-[#ce412b11]">
+                        <i class="fa-brands fa-rust text-xs"></i> Rust Project
+                    </span>
+                </div>
+                <!-- Terminal Window Title -->
+                <div class="terminal-window w-full">
+                    <!-- Terminal Header -->
+                    <div class="terminal-header flex items-center px-4 py-3 gap-2">
+                        <div class="flex gap-2">
+                            <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <span
+                                class="text-xs text-gray-500 font-mono bg-[#0d1117] px-3 py-1 rounded border border-[#30363d]">
+                                <i class="fa-solid fa-folder-open mr-1"></i> ~/projects/type-wiz
+                            </span>
+                        </div>
+                        <div class="w-14"></div> <!-- Spacer for balance -->
+                    </div>
+                    <!-- Terminal Content -->
+                    <div
+                        class="p-16 flex flex-col items-center text-center bg-[#0d1117] rounded-b-lg relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-4 opacity-5">
+                            <i class="fa-brands fa-rust text-9xl"></i>
+                        </div>
+                        <p class="code-font text-[#ce412b] mb-4 text-lg opacity-80">$ cargo run --release --verbose</p>
+                        <h1 class="text-6xl font-bold text-white mb-6 tracking-tight leading-tight glow-text">
+                            Rust製<br />
+                            CLIタイピングゲーム
+                        </h1>
+                        <div class="h-1 w-32 bg-gradient-to-r from-[#ce412b] to-orange-600 my-6 rounded-full"></div>
+                        <h2 class="text-3xl text-gray-400 font-light tracking-wide">
+                            中間発表資料
+                        </h2>
+                    </div>
+                </div>
+                <!-- Footer Info -->
+                <div class="flex justify-between w-full px-4 pt-4 mt-2 border-t border-gray-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded bg-white flex items-center justify-center">
+                            <i class="fa-brands fa-github text-[#0d1117] text-xl"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <p class="text-xs text-gray-500">REPOSITORY</p>
+                            <a href="https://github.com/Fukumoto0141/type-wiz" class="text-sm font-medium text-gray-300 code-font">https://github.com/Fukumoto0141/type-wiz</a>
+                        </div>
+                    </div>
+                    <div class="flex gap-12 text-gray-400">
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500 mb-0.5">PRESENTED BY</p>
+                            <p class="text-base font-medium text-white">Kosei Fukumoto</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500 mb-0.5">DATE</p>
+                            <p class="text-base font-medium text-white code-font">2025-12-10</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Bottom Color Bar -->
+        <div class="h-1.5 w-full bg-gradient-to-r from-[#ce412b] via-[#e05d44] to-[#d2991d]"></div>
+    </div>
+    <script src="slideshow.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>今後のスケジュール</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;700&amp;family=M+PLUS+1+Code:wght@400;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'IBM Plex Sans JP', sans-serif;
+            background-color: #0d1117;
+            /* GitHub Dark Dimmed */
+            color: #c9d1d9;
+        }
+
+        .code-font {
+            font-family: 'M PLUS 1 Code', monospace;
+        }
+
+        .card-bg {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+        }
+
+        /* Timeline connector line */
+        .timeline-connector {
+            height: 2px;
+            background-color: #30363d;
+            flex: 1;
+            position: relative;
+        }
+
+        .timeline-connector::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            border-left: 6px solid #30363d;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        .phase-card {
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .phase-card:hover {
+            transform: translateY(-4px);
+            border-color: #8b949e;
+        }
+
+        /* Custom bullet points */
+        .task-item {
+            position: relative;
+            padding-left: 1.25rem;
+        }
+
+        .task-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.6rem;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #30363d;
+        }
+
+        .group-blue .task-item::before {
+            background-color: #58a6ff;
+        }
+
+        .group-orange .task-item::before {
+            background-color: #ce412b;
+        }
+
+        .group-green .task-item::before {
+            background-color: #238636;
+        }
+    </style>
+</head>
+
+<body class="w-[1280px] h-[720px] overflow-hidden m-0 p-0 flex flex-col">
+    <!-- Header -->
+    <div class="w-full px-12 pt-10 pb-6 flex items-center justify-between border-b border-[#30363d] bg-[#0d1117]">
+        <div class="flex items-center gap-4">
+            <div class="w-2 h-8 bg-[#a371f7] rounded-sm"></div>
+            <h1 class="text-3xl font-bold text-white tracking-wide">今後のスケジュール</h1>
+        </div>
+        <div class="text-gray-500 code-font text-sm">
+            <i class="fa-solid fa-calendar-check mr-2"></i>Development Roadmap
+        </div>
+    </div>
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col items-center justify-center p-12">
+        <!-- Timeline Flow -->
+        <div class="w-full max-w-6xl flex items-stretch justify-between gap-4">
+            <!-- Phase 1: Build & CI -->
+            <div class="flex-1 flex flex-col group-blue">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-[#1f6feb] flex items-center justify-center text-white shadow-lg z-10 border-4 border-[#0d1117]">
+                        <span class="code-font font-bold">01</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-[#58a6ff] text-xs font-bold tracking-wider uppercase">CURRENT PHASE</p>
+                        <p class="text-white font-bold text-lg">～冬休み</p>
+                    </div>
+                </div>
+                <!-- Card -->
+                <div
+                    class="phase-card flex-1 card-bg rounded-lg p-6 border-t-4 border-[#1f6feb] shadow-xl flex flex-col">
+                    <div class="mb-6 pb-4 border-b border-[#30363d]">
+                        <h3 class="text-xl font-bold text-white mb-1">基盤整備・ビルド</h3>
+                        <p class="text-gray-400 text-sm">CI/CD &amp; Distribution</p>
+                    </div>
+                    <div class="flex-1">
+                        <ul class="space-y-4 text-gray-300">
+                            <li class="task-item">
+                                <p class="font-medium text-white">インストーラー作成</p>
+                                <p class="text-sm text-gray-500 mt-0.5">Windows/Mac/Linux対応</p>
+                            </li>
+                            <li class="task-item">
+                                <p class="font-medium text-white">CI自動ビルド構築</p>
+                                <p class="text-sm text-gray-500 mt-0.5">GitHub Actionsワークフロー</p>
+                            </li>
+                            <li class="task-item">
+                                <p class="font-medium text-white">アップデート機能</p>
+                                <p class="text-sm text-gray-500 mt-0.5">バイナリの自己更新ロジック</p>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-[#30363d] flex items-center gap-2 text-xs text-[#58a6ff]">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i>
+                        <span class="code-font">IN PROGRESS</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Connector -->
+            <div class="flex flex-col justify-center w-8 pt-16 opacity-30">
+                <i class="fa-solid fa-arrow-right text-2xl text-gray-500"></i>
+            </div>
+            <!-- Phase 2: Development -->
+            <div class="flex-1 flex flex-col group-orange">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-[#30363d] text-gray-400 flex items-center justify-center shadow-lg z-10 border-4 border-[#0d1117]">
+                        <span class="code-font font-bold">02</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-500 text-xs font-bold tracking-wider uppercase">NEXT SPRINT</p>
+                        <p class="text-gray-300 font-bold text-lg">冬休み～授業開始</p>
+                    </div>
+                </div>
+                <!-- Card -->
+                <div
+                    class="phase-card flex-1 card-bg rounded-lg p-6 border-t-4 border-[#ce412b] shadow-xl flex flex-col opacity-90">
+                    <div class="mb-6 pb-4 border-b border-[#30363d]">
+                        <h3 class="text-xl font-bold text-white mb-1">機能実装・仕上げ</h3>
+                        <p class="text-gray-400 text-sm">Features &amp; Polish</p>
+                    </div>
+                    <div class="flex-1">
+                        <ul class="space-y-4 text-gray-300">
+                            <li class="task-item">
+                                <p class="font-medium text-gray-200">ランキング機能</p>
+                                <p class="text-sm text-gray-500 mt-0.5">スコア保存と表示UI</p>
+                            </li>
+                            <li class="task-item">
+                                <p class="font-medium text-gray-200">残りの機能実装</p>
+                                <p class="text-sm text-gray-500 mt-0.5">ログ、設定画面など</p>
+                            </li>
+                            <li class="task-item">
+                                <p class="font-medium text-gray-200">バグ修正・テスト</p>
+                                <p class="text-sm text-gray-500 mt-0.5">エッジケースの対応</p>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-[#30363d] flex items-center gap-2 text-xs text-gray-500">
+                        <i class="fa-regular fa-clock"></i>
+                        <span class="code-font">SCHEDULED</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Connector -->
+            <div class="flex flex-col justify-center w-8 pt-16 opacity-30">
+                <i class="fa-solid fa-arrow-right text-2xl text-gray-500"></i>
+            </div>
+            <!-- Phase 3: Release -->
+            <div class="flex-1 flex flex-col group-green">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-10 h-10 rounded-full bg-[#30363d] text-gray-400 flex items-center justify-center shadow-lg z-10 border-4 border-[#0d1117]">
+                        <span class="code-font font-bold">03</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-500 text-xs font-bold tracking-wider uppercase">FINAL</p>
+                        <p class="text-gray-300 font-bold text-lg">～発表日</p>
+                    </div>
+                </div>
+                <!-- Card -->
+                <div
+                    class="phase-card flex-1 card-bg rounded-lg p-6 border-t-4 border-[#238636] shadow-xl flex flex-col opacity-80">
+                    <div class="mb-6 pb-4 border-b border-[#30363d]">
+                        <h3 class="text-xl font-bold text-white mb-1">ドキュメント・発表</h3>
+                        <p class="text-gray-400 text-sm">Documentation &amp; Release</p>
+                    </div>
+                    <div class="flex-1">
+                        <ul class="space-y-4 text-gray-300">
+                            <li class="task-item">
+                                <p class="font-medium text-gray-200">README整備</p>
+                                <p class="text-sm text-gray-500 mt-0.5">使用方法、インストール手順</p>
+                            </li>
+                            <li class="task-item">
+                                <p class="font-medium text-gray-200">GitHubリリース</p>
+                                <p class="text-sm text-gray-500 mt-0.5">v1.0.0のタグ打ち</p>
+                            </li>
+                            <li class="task-item">
+                                <p class="font-medium text-gray-200">発表資料の最終調整</p>
+                                <p class="text-sm text-gray-500 mt-0.5">デモ動画の準備</p>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-[#30363d] flex items-center gap-2 text-xs text-gray-500">
+                        <i class="fa-regular fa-flag"></i>
+                        <span class="code-font">MILESTONE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Bottom Info -->
+        <div class="mt-12 flex items-center gap-4 bg-[#161b22] px-6 py-3 rounded-full border border-[#30363d]">
+            <i class="fa-solid fa-info-circle text-[#a371f7]"></i>
+            <p class="text-gray-400 text-sm">冬休み期間を利用して、機能実装を一気に進める計画です</p>
+        </div>
+    </div>
+    <!-- Page Number -->
+    <div class="absolute bottom-6 right-8 text-gray-600 code-font text-sm">
+        04 / 05
+    </div>
+    <script src="slideshow.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust製CLIタイピングゲーム 中間発表</title>
+    <!-- 共通のスタイルシート -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;700&amp;family=M+PLUS+1+Code:wght@400;700&amp;display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'IBM Plex Sans JP', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+        }
+        #slide-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: auto; /* 画面より大きい場合はスクロール可能に */
+        }
+        /* スライド内のコンテンツ調整 */
+        /* 読み込んだHTMLのbodyのクラスを適用するdiv用 */
+        #slide-container > div:not(.text-center) {
+            /* 必要に応じてここにスタイルを追加 */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); /* スライドっぽく影をつける */
+        }
+    </style>
+</head>
+<body>
+    <div id="slide-container">
+        <!-- ここにスライドの内容が読み込まれます -->
+        <div class="text-center text-2xl">Loading...</div>
+    </div>
+
+    <!-- ナビゲーションヒント -->
+    <div class="fixed bottom-4 right-4 text-gray-500 text-sm opacity-50 pointer-events-none z-50">
+        Click or Arrow Keys to Navigate
+    </div>
+
+    <script>
+        const slides = [
+            '01.html',
+            '02.html',
+            '03.html',
+            '04.html',
+            '05.html'
+        ];
+        
+        let currentSlideIndex = 0;
+        const container = document.getElementById('slide-container');
+
+        // URLパラメータから開始スライドを取得 (?slide=2)
+        const urlParams = new URLSearchParams(window.location.search);
+        const slideParam = parseInt(urlParams.get('slide'));
+        if (!isNaN(slideParam) && slideParam >= 1 && slideParam <= slides.length) {
+            currentSlideIndex = slideParam - 1;
+        }
+
+        async function loadSlide(index) {
+            if (index < 0 || index >= slides.length) return;
+
+            try {
+                const response = await fetch(slides[index]);
+                if (!response.ok) throw new Error('Slide not found');
+                const text = await response.text();
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                
+                // bodyの中身を取得
+                const bodyContent = doc.body.innerHTML;
+                // bodyのクラスを取得
+                const bodyClass = doc.body.className;
+                
+                // スタイルタグも取得して適用する
+                const styles = doc.head.querySelectorAll('style');
+                let styleContent = '';
+                styles.forEach(style => {
+                    styleContent += style.outerHTML;
+                });
+
+                // コンテンツを挿入
+                // 読み込んだbodyのクラスを適用したdivでラップする
+                container.innerHTML = styleContent + '<div class="' + bodyClass + '">' + bodyContent + '</div>';
+                
+                currentSlideIndex = index;
+                
+                // URLを更新
+                const newUrl = `${window.location.pathname}?slide=${currentSlideIndex + 1}`;
+                window.history.replaceState({ path: newUrl }, '', newUrl);
+
+            } catch (error) {
+                console.error('Error loading slide:', error);
+                container.innerHTML = '<div class="text-red-500 text-center p-10">Error loading slide: ' + slides[index] + '</div>';
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlideIndex < slides.length - 1) {
+                loadSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                loadSlide(currentSlideIndex - 1);
+            }
+        }
+
+        // キーボードイベント
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // クリックイベント
+        document.addEventListener('click', (e) => {
+            // リンクなどのクリックを阻害しないようにする
+            if (e.target.tagName === 'A' || e.target.closest('a')) return;
+            
+            // 画面の左側1/3をクリックしたら戻る、それ以外は進む
+            const width = window.innerWidth;
+            if (e.clientX < width / 3) {
+                prevSlide();
+            } else {
+                nextSlide();
+            }
+        });
+
+        // 初期ロード
+        loadSlide(currentSlideIndex);
+
+    </script>
+</body>
+</html>
